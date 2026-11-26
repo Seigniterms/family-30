@@ -128,9 +128,24 @@ function baseScene(e) {
     case 'sports':
       title='운동회 초대장'; setup=members[e.kid].name+'의 운동회다. 보호자 달리기를 앞두고 아이와 운동장에 섰다.'; message='여기야! 결승선에서 기다릴게!';
       choices=[choice('폼 잡고 전력 질주!', '결승선 직전 모자가 날아갔다. 아이가 웃으며 내게 종이 메달을 걸어 줬다.', 'medal'),choice('손을 흔들며 골인한다.', '아이가 직접 찍은 사진 속에서 나는 활짝 웃고 있었다.', 'sportsPhoto')]; break;
-    case 'meet': case 'follow':
-      title = e.type === 'follow' ? '기억하고 있었구나' : '빈자리 하나';
-      setup = e.type === 'follow' ? '약속한 날, 내가 먼저 도착했다. 곧 맞은편 자리에 '+members[id].name+'도 앉았다.' : '모임에 조금 일찍 도착했다. 내 옆에 한 사람이 앉았다.';
+    case 'follow': {
+      const moments={
+        shoot:['사진 부스 앞에서','지난번에 둘이 만나기로 했잖아. 사진 한 장 찍고 갈래?','같이 사진을 찍는다.','타이머가 울리자 두 사람이 동시에 웃었다.'],
+        game:['오락실 앞에서','약속대로 왔네! 한 판 할래? 내가 동전 챙겨 왔어.','같이 게임을 한다.','마지막 판에서 둘이 동시에 버튼을 눌렀다.'],
+        dinner:['국숫집 앞에서','기다렸지? 여기 국물 맛있대. 같이 들어갈까?','마주 앉아 국수를 먹는다.','김이 오른 그릇을 앞에 두고 서로의 하루를 들었다.'],
+        trip:['강변에서 만난 날','약속한 곳이 여기야. 강 보면서 천천히 걸을래?','나란히 강변을 걷는다.','강바람을 맞으며 나란히 걸었다.']
+      };
+      const [name,voice,label,line]=moments[favorite(id)] || moments.trip;
+      title=name;setup='지난번에 잡은 약속을 지키러 왔다. '+withParticle(members[id].name,'이','가')+' 먼저 손을 흔든다.';
+      message=voice;
+      choices=[choice(label,line,'closer'),choice('앉아서 요즘 이야기를 듣는다.','서두르지 않고 서로의 하루를 이야기했다.','closer')];
+      if (!partner(contact) && contact.affection>0)
+        choices.unshift(reply('나, 너랑 사귀고 싶어.', '나도 좋아해. 이제 손잡고 걸어도 돼?', 'date'));
+      break;
+    }
+    case 'meet':
+      title = '빈자리 하나';
+      setup = '모임에 조금 일찍 도착했다. 내 옆에 한 사람이 앉았다.';
       message = '오늘은 우리 둘이 좀 더 얘기할까?';
       choices = [reply('다음엔 둘이서 만날래?', '좋아. 다음엔 나한테 먼저 연락해 줘.', 'promise'), choice('친구로 자주 보자!', '편한 친구가 한 명 더 생겼다.', 'friend'), choice('오늘은 먼저 갈게.', '웃으며 다음을 기약했다.')];
       if (!['연인','배우자'].includes(contact.role) && contact?.affection > 0)

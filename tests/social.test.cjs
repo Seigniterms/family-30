@@ -101,3 +101,14 @@ test('a commitment changes invitations in ordinary scenes before a secret meetin
     assert.equal(run("validStoryEvent({type:'affair',id:'a',result:{line:'저장된 대답'}})"),true);
   }
 });
+
+test('the follow-up appointment has an actual meeting and does not schedule itself again',()=>{
+  const run=loadTown();
+  run("game.event={type:'meet',id:'a'};game.contacts.a.affection=2;pick=()=> 'yes';answer(scene(game.event).choices.findIndex(c=>c.effect==='promise'))");
+  assert.equal(run("game.contacts.a.plan"),'follow');
+  run("game.season++;game.event={type:'follow',id:'a'};game.contacts.a.promise=false");
+  assert.equal(run("scene(game.event).choices.some(c=>c.effect==='promise')"),false);
+  run("answer(scene(game.event).choices.findIndex(c=>c.effect==='closer'))");
+  assert.equal(run('game.contacts.a.promise'),false);
+  assert.equal(run("game.log.at(-1).effect"),'closer');
+});

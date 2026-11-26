@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff6df">
+  <title>Family 30</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      color: #3c3034;
+      background: #fff6df;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; word-break: keep-all; overflow-wrap: break-word; }
+    button { font: inherit; }
+    .app { min-height: 100vh; min-height: 100svh; }
+    .screen {
+      position: relative;
+      width: min(100%, 480px);
+      min-height: 100vh;
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: max(28px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+      overflow: hidden;
+    }
+    .start-screen {
+      width: min(100%, 480px);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: clamp(18px, 3vh, 30px);
+    }
+    .brand { text-align: center; }
+    .brand-kicker {
+      display: inline-block;
+      margin: 0 0 16px;
+      padding: 5px 14px;
+      transform: rotate(-3deg);
+      border: 2px solid #123e60;
+      border-radius: 8px;
+      background: #ffd35e;
+      box-shadow: 2px 3px 0 #123e60;
+      color: #123e60;
+      font-size: 15px;
+      font-weight: 900;
+    }
+    h1 { margin: 0; }
+    .game-title { font: 1000 clamp(62px, 16vw, 77px)/.98 ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif; text-shadow: 0 3px 0 #ffc65b; letter-spacing: -.075em; color: #123e60; }
+    .game-title strong { margin-left: .07em; color: #cc482b; }
+    .brand-copy {
+      position: relative;
+      display: inline-block;
+      margin: 20px 0 0;
+      padding: 12px 18px;
+      border: 2px solid #123e60;
+      border-radius: 18px 18px 18px 5px;
+      background: #fffdf5;
+      box-shadow: 3px 4px 0 #f1be6d;
+      color: #123e60;
+      font-size: 16px;
+      font-weight: 650;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+    .brand-copy::before {
+      position: absolute;
+      top: -7px;
+      left: 24px;
+      width: 9px;
+      height: 9px;
+      transform: rotate(45deg);
+      border-top: 2px solid #123e60;
+      border-left: 2px solid #123e60;
+      background: #fffdf5;
+      content: "";
+    }
+    .brand-question { display: block; font-size: 1.22em; font-weight: 900; }
+    .brand-spark {
+      color: #a33723;
+      font-weight: 900;
+      background: linear-gradient(transparent 61%, #ffd35e 61%);
+    }
+    .cover { display: block; width: min(100%, 75svh, 680px); height: auto; border-radius: 12px; }
+    .start-actions { width: min(100%, 330px); }
+    .start-button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 54px; padding: 12px 22px; border: 0; border-radius: 10px; background: #156491; box-shadow: 0 4px 0 #103f60; color: white; font-size: 17px; font-weight: 700; cursor: pointer; }
+    .start-button:hover { background: #10547c; }
+    .start-button:focus-visible { outline: 3px solid #cc482b; outline-offset: 4px; }
+    .button-arrow { font-size: 23px; }
+    .selection-screen { color: #123e60; overflow: visible; }
+    .album-back { color: #345870; display: inline-block; padding: 12px 0; }
+    .selection-title { margin: 20px 0; font-size: clamp(25px, 7vw, 32px); letter-spacing: -.06em; }
+    .selection-title:focus { outline: none; }
+    .album-search { width: 100%; padding: 12px 14px; border: 1px solid #a89678; border-radius: 12px; font: inherit; }
+    .album-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+    .portrait { padding: 4px; background: #fffdfa; color: #123e60; border: 2px solid #d7c7aa; border-radius: 10px; box-shadow: 0 3px 0 #e5d4af; font-weight: 800; cursor: pointer; }
+    .portrait img { display: block; width: 100%; height: auto; border-radius: 5px; }
+    .portrait span { display: block; padding: 7px 0 4px; }
+    .portrait[aria-pressed="true"] { border-color: #156491; background: #fff1b5; }
+    @media (prefers-reduced-motion: no-preference) {
+      .portrait[aria-pressed="true"] { animation: pop .25s ease-out; }
+      @keyframes pop { 50% { transform: translateY(-4px) rotate(-2deg); } }
+    }
+    .confirm-box { width: min(88vw, 350px); padding: 24px; border: 2px solid #123e60; border-radius: 22px; background: #fff6df; color: #123e60; text-align: center; }
+    .confirm-box::backdrop { background: #102c40aa; }
+    .confirm-box img { width: 112px; height: 112px; border-radius: 16px; }
+    .confirm-box #confirm-photo { display: block; margin-inline: auto; }
+    .character-quote {
+      position: relative;
+      width: fit-content;
+      max-width: 100%;
+      margin: 12px auto 22px;
+      padding: 10px 14px;
+      border: 2px solid #123e60;
+      border-radius: 16px;
+      background: #ffdf83;
+      box-shadow: 0 3px 0 #e7ba69;
+      font-size: 17px;
+      font-weight: 750;
+      line-height: 1.5;
+    }
+    .character-quote::before {
+      content: "";
+      position: absolute;
+      top: -7px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      transform: translateX(-50%) rotate(45deg);
+      background: inherit;
+      border-top: 2px solid #123e60;
+      border-left: 2px solid #123e60;
+    }
+    .confirm-box h2 { font-size: 21px; }
+    .confirm-box .start-button { justify-content: center; margin-top: 20px; }
+    .secondary { padding: 12px; border: 0; background: transparent; color: #345870; cursor: pointer; }
+    .chat-line { display: flex; gap: 10px; align-items: flex-start; margin: 18px 0; }
+    .chat-line img { width: 48px; height: 48px; border-radius: 15px; }
+    .bubble { background: white; border: 1px solid #dbcdb5; border-radius: 3px 16px 16px; padding: 12px; margin: 6px 0; line-height: 1.6; }
+    .outgoing { background: #ffe49b; margin-left: auto; width: fit-content; }
+    .reply-options { display: grid; gap: 10px; margin-top: 24px; }
+    .reply-options button { padding: 14px; text-align: left; border: 1px solid #156491; border-radius: 12px; color: #123e60; background: #fffdfa; cursor: pointer; }
+    .brand-copy, .confirm-box h2, #confirm-quote, .bubble, .reply-options button {
+      text-wrap: balance;
+    }
+    .chat-line > div { min-width: 0; }
+    .chat-line img { flex-shrink: 0; }
+    @media (max-width: 375px) {
+      .screen { padding-inline: 16px; }
+      .confirm-box { padding-inline: 16px; }
+      .brand-copy { padding-inline: 12px; }
+      .copy-phrase { display: inline-block; max-width: 100%; }
+      #confirm-title > span, .chat-invitation > span { display: block; }
+    }
+    .tree-board { display: grid; justify-items: center; padding: 30px 16px; border: 2px solid #ced4b6; border-radius: 20px; background: radial-gradient(#c4d5bd 1px, transparent 1px) 0 0 / 14px 14px, #edf1df; }
+    .tree-root { margin: 0; padding: 10px; width: 126px; border: 2px solid #264f45; border-radius: 16px; background: #fffdf5; box-shadow: 0 4px 0 #b5c7aa; text-align: center; }
+    .tree-root img { display: block; width: 100%; border-radius: 8px; }
+    .tree-root figcaption { margin-top: 8px; font-weight: 800; }
+    .memory-card { padding: 16px; background: #fffdfa; border: 1px solid #dbcdb5; border-radius: 14px; }
+    .memory-card p { margin: 10px 0 0; line-height: 1.6; text-wrap: balance; }
+    #tree-link { margin-top: 20px; width: fit-content; text-decoration: none; }
+    #first-chat {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      color: #fffaf3;
+      background: linear-gradient(180deg, #241b39e6, #26153522 38%, #24152fcc 70%, #23182e 100%),
+                  url("materials/evening-street.jpg") center / cover;
+    }
+    .scene-heading { padding: max(16px, env(safe-area-inset-top)) 20px 0; text-shadow: 0 1px 5px #28192f; }
+    .scene-nav { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .scene-nav a { color: inherit; padding-block: 9px; }
+    .scene-heading h1 { margin: 10px 0 4px; }
+    .scene-heading p { margin: 0; line-height: 1.5; text-wrap: balance; }
+    .scene-portrait { flex: 1; display: grid; place-items: center; padding: 16px 0 24px; }
+    .scene-portrait img { width: clamp(112px, 23svh, 210px); aspect-ratio: 1; border-radius: 50%; border: 3px solid #ffdcad; box-shadow: 0 4px 28px #30153399; }
+    .scene-panel { padding: 0 16px max(18px, env(safe-area-inset-bottom)); }
+    .scene-dialogue { position: relative; padding: 20px 16px 14px; border: 1px solid #f3cd99; border-radius: 5px 18px 5px 18px; background: #fff7ecef; color: #40283c; box-shadow: 0 6px 18px #24132655; }
+    .scene-dialogue strong { position: absolute; top: 0; left: 14px; transform: translateY(-55%); padding: 3px 16px; border: 1px solid #efd0a2; border-radius: 8px 2px; background: #794158; color: white; }
+    .scene-dialogue p { margin: 0; line-height: 1.6; text-wrap: balance; }
+    .scene-panel .reply-options { gap: 7px; margin-top: 12px; }
+    .scene-panel .reply-options button { min-height: 44px; padding: 9px 14px; text-align: center; background: #38293feF; border: 1px solid #e5ba98; color: #fff5e7; }
+    .scene-panel .reply-options button:is(:hover, :focus-visible) { background: #733e55; }
+    .scene-panel .bubble { color: #432d42; }
+    .scene-panel #tree-link { background: #793e56; box-shadow: 0 3px 0 #432b40; }
+    @media (max-height: 700px) {
+      .screen { gap: 14px; padding-top: 20px; }
+      .brand { padding-top: 0; }
+      .brand-copy { margin-top: 8px; }
+      .start-button { min-height: 54px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .start-button { transition: none; }
+    }
+    #resume { margin-bottom: 12px; }
+    .family-row { display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; }
+    .family-row img { width:68px; height:68px; object-fit:cover; border-radius:15px; }
+    .family-row figure { margin:0; text-align:center; font-weight:700; }
+    .child-row { margin-top:18px; padding-top:16px; border-top:2px solid #79917a; width:100%; }
+    #family-content details { margin:10px 0; padding:10px; background:#fffdf5; border-radius:10px; }
+    #family-content summary { cursor:pointer; }
+    #family-content .start-button { margin:12px 0; }
+    .person-card { width:100%; display:flex; align-items:center; gap:12px; padding:10px; margin:8px 0; border:0; background:transparent; color:#123e60; text-align:left; cursor:pointer; }
+    .person-card img { width:60px; height:60px; border-radius:17px; border:2px solid #dbb684; }
+    .person-line { position:relative; display:block; margin-top:4px; background:#fffaf0; border:1px solid #cba87c; border-radius:3px 14px 14px; padding:8px 11px; line-height:1.45; text-wrap:balance; }
+    .souvenir { margin-top:22px; padding:16px; background:#ffedbe; border-block:2px dashed #bb8a50; }
+    .souvenir h3,.souvenir p { margin:6px 0; }
+  </style>
+  <link rel="stylesheet" href="stage.css">
+</head>
+<body>
+  <aside id="save-warning" role="alert" hidden>이 기기에서 저장하지 못했어요. <button type="button" id="retry-save">다시 저장</button></aside>
+  <main class="app">
+    <section class="screen start-screen" id="start-screen" aria-labelledby="game-title">
+      <header class="brand">
+        <p class="brand-kicker">우당탕탕 가족 시뮬레이션</p>
+        <h1 class="game-title" id="game-title"><span>Family</span><strong>30</strong></h1>
+        <p class="brand-copy"><strong class="brand-question">누구와 가족이 될까?</strong> <span class="copy-phrase">당신의 선택이</span> <span class="copy-phrase">단톡방 멤버들과의 <strong class="brand-spark">썸띵</strong>으로!</span></p>
+      </header>
+
+      <img class="cover" src="materials/moving-day.jpg" width="1536" height="1024" alt="새집 열쇠를 번쩍 든 가족 옆에서 강아지가 양말을 물고 이삿짐 상자 밖으로 튀어 오른다">
+
+      <div class="start-actions"><button id="resume" class="start-button" hidden>이어하기 →</button>
+        <button class="start-button" id="start-game" type="button">
+          <span>게임 시작하기</span>
+          <span class="button-arrow" aria-hidden="true">→</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="screen selection-screen" id="character-screen" aria-labelledby="character-title" hidden>
+      <a class="album-back" href="#">← 시작 화면</a>
+      <h1 class="selection-title" id="character-title" tabindex="-1">이번엔 누구로 살아볼까?</h1>
+      <input class="album-search" id="album-search" type="search" placeholder="이름으로 찾기" aria-label="이름으로 찾기">
+      <div class="album-grid">
+        <button class="portrait" type="button" aria-pressed="false" data-id="13" data-sex="남" data-name="낙낙" data-quote="똑똑. 여기 옆자리 비었나요?">
+          <img loading="lazy" src="materials/characters/member-13.jpg" width="640" height="640" alt="">
+          <span>낙낙</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="44" data-sex="남" data-name="제비" data-quote="바람 좋은 쪽으로 가 볼까? 길은 내가 알아.">
+          <img loading="lazy" src="materials/characters/member-44.jpg" width="640" height="640" alt="">
+          <span>제비</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="19" data-sex="남" data-name="로이" data-quote="이 노래 알아? 후렴은 같이 불러 줘.">
+          <img loading="lazy" src="materials/characters/member-19.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>로이</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="15" data-sex="남" data-name="도리" data-quote="약속 장소 한 바퀴 돌았더니 네가 딱 있더라.">
+          <img loading="lazy" src="materials/characters/member-15.jpg" width="640" height="640" alt="">
+          <span>도리</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="14" data-sex="여" data-name="냥냥" data-quote="관심 없었는데… 내 자리 옆은 비워 놨어.">
+          <img src="materials/characters/nyang.jpg" width="640" height="640" alt="">
+          <span>냥냥</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="38" data-sex="여" data-name="은하" data-quote="오늘 밤엔 별 보인대. 돗자리 하나면 되겠지?">
+          <img loading="lazy" src="materials/characters/member-38.jpg" width="640" height="640" alt="">
+          <span>은하</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="51" data-sex="남" data-name="커피" data-quote="오늘은 어떤 잔에 내려 줄까? 네 단골잔 하나 정하자.">
+          <img loading="lazy" src="materials/characters/member-51.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>커피</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="4" data-sex="남" data-name="닭발" data-quote="딱 한 입만 먹어 봐. 아, 우유부터 줄까?">
+          <img src="materials/characters/dakbal.jpg" width="640" height="640" alt="">
+          <span>닭발</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="25" data-sex="남" data-name="밥만" data-quote="밥만 먹고 가려고 했는데, 얘기가 더 재밌네.">
+          <img loading="lazy" src="materials/characters/member-25.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>밥만</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="58" data-sex="여" data-name="햇님" data-quote="안경 너머로 봐도 오늘 날씨가 참 좋네.">
+          <img loading="lazy" src="materials/characters/member-58.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>햇님</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="20" data-sex="남" data-name="맹고" data-quote="망고 하나 잘랐어. 제일 달아 보이는 쪽 골라.">
+          <img loading="lazy" src="materials/characters/member-20.jpg" width="640" height="640" alt="">
+          <span>맹고</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="16" data-sex="여" data-name="돈돈" data-quote="오늘부터 둘이서 모을까? 첫 번째는 추억!">
+          <img loading="lazy" src="materials/characters/member-16.jpg" width="640" height="640" alt="">
+          <span>돈돈</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="28" data-sex="여" data-name="봄봄" data-quote="오늘 핀 꽃 봤어? 네가 좋아할 색이더라.">
+          <img loading="lazy" src="materials/characters/member-28.jpg" width="640" height="640" alt="">
+          <span>봄봄</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="2" data-sex="여" data-name="이슬" data-quote="이슬 맺힌 창가 자리, 너한테 맡아 뒀어.">
+          <img loading="lazy" src="materials/characters/member-02.jpg" width="640" height="640" alt="">
+          <span>이슬</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="57" data-sex="여" data-name="해나" data-quote="단체 사진? 잠깐, 내 왼쪽 머리가 나와야 해!">
+          <img loading="lazy" src="materials/characters/member-57.jpg" width="640" height="640" alt="">
+          <span>해나</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="59" data-sex="남" data-name="호두" data-quote="둘이 앉을 벤치를 만들었어. 먼저 앉아 봐.">
+          <img loading="lazy" src="materials/characters/member-59.jpg" width="640" height="640" alt="">
+          <span>호두</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="8" data-sex="남" data-name="감자" data-quote="감자 반 갈라서 버터 얹어 먹자. 큰 쪽은 네 거!">
+          <img loading="lazy" src="materials/characters/member-08.jpg" width="640" height="640" alt="">
+          <span>감자</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="42" data-sex="여" data-name="저당" data-quote="덜 달게 주문했는데, 너랑 먹으니 딱 좋네.">
+          <img loading="lazy" src="materials/characters/member-42.jpg" width="640" height="640" alt="">
+          <span>저당</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="35" data-sex="여" data-name="우춘" data-quote="오늘 운세에 좋은 만남이 있다더니, 너였네.">
+          <img loading="lazy" src="materials/characters/member-35.jpg" width="640" height="640" alt="">
+          <span>우춘</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="29" data-sex="남" data-name="부처" data-quote="마음을 비웠는데 단톡 알림이 또 왔구나.">
+          <img src="materials/characters/buddha.jpg" width="640" height="640" alt="">
+          <span>부처</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="39" data-sex="여" data-name="이얍" data-quote="이얍! 어색한 첫인사는 이걸로 끝!">
+          <img loading="lazy" src="materials/characters/member-39.jpg" width="640" height="640" alt="">
+          <span>이얍</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="54" data-sex="남" data-name="테란" data-quote="달에서도 단톡 알림은 울릴까?">
+          <img loading="lazy" src="materials/characters/member-54.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>테란</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="52" data-sex="남" data-name="크림" data-quote="이상하다. 네 알림만 두 번씩 보게 되네.">
+          <img src="materials/characters/cream.jpg" width="640" height="640" alt="">
+          <span>크림</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="18" data-sex="남" data-name="뒹굴" data-quote="소파 한 칸 비워 놨어. 영화는 네가 골라.">
+          <img loading="lazy" src="materials/characters/member-18.jpg" width="640" height="640" alt="">
+          <span>뒹굴</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="21" data-sex="남" data-name="묵은지" data-quote="고기 한 점에 김치 한 장. 자, 입 벌려!">
+          <img src="materials/characters/kimchi.jpg?v=2" width="640" height="640" alt="">
+          <span>묵은지</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="36" data-sex="여" data-name="유미" data-quote="너 웃을 때 나도 따라 웃는 거 알아?">
+          <img loading="lazy" src="materials/characters/member-36.jpg" width="640" height="640" alt="">
+          <span>유미</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="30" data-sex="여" data-name="뽀삐" data-quote="방금 나 찾았지? 응, 나도 너 찾고 있었어.">
+          <img loading="lazy" src="materials/characters/member-30.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>뽀삐</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="22" data-sex="남" data-name="미노" data-quote="지금 그 표정, 한 장만 남겨도 돼?">
+          <img loading="lazy" src="materials/characters/member-22.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>미노</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="56" data-sex="여" data-name="피치" data-quote="복숭아 딱딱파야, 말랑파야? 둘 다 사 왔어.">
+          <img loading="lazy" src="materials/characters/member-56.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>피치</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="27" data-sex="남" data-name="보아" data-quote="저 골목으로 가 보자. 처음 가는 길이 재밌잖아.">
+          <img loading="lazy" src="materials/characters/member-27.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>보아</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="12" data-sex="남" data-name="김머" data-quote="아까 보낸 사진, 확대해 봐. 뒤에서 내가 손 흔들어.">
+          <img loading="lazy" src="materials/characters/member-12.jpg" width="640" height="640" alt="">
+          <span>김머</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="17" data-sex="남" data-name="동구" data-quote="누가 내 이름 불렀어? 반가워서 벌써 왔지.">
+          <img loading="lazy" src="materials/characters/member-17.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>동구</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="7" data-sex="여" data-name="가을" data-quote="바스락 소리 좋은 길을 알아. 한 바퀴 걸을래?">
+          <img loading="lazy" src="materials/characters/member-07.jpg" width="640" height="640" alt="">
+          <span>가을</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="43" data-sex="여" data-name="제로" data-quote="준비물은 제로! 그냥 같이 가면 돼.">
+          <img loading="lazy" src="materials/characters/member-43.jpg" width="640" height="640" alt="">
+          <span>제로</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="37" data-sex="남" data-name="유유" data-quote="부장님한텐 회의라고 했어. 간식 먹으러 갈래?">
+          <img src="materials/characters/yuyu.jpg" width="640" height="640" alt="">
+          <span>유유</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="26" data-sex="남" data-name="버터" data-quote="토스트 식기 전에 먹어 봐. 버터 한 겹 더 발랐어.">
+          <img loading="lazy" src="materials/characters/member-26.jpg" width="640" height="640" alt="">
+          <span>버터</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="10" data-sex="남" data-name="게장" data-quote="밥 한 공기 더 시킬까? 게딱지는 내가 비벼 줄게.">
+          <img loading="lazy" src="materials/characters/member-10.jpg" width="640" height="640" alt="">
+          <span>게장</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="33" data-sex="여" data-name="연두" data-quote="새잎이 났어! 제일 먼저 너한테 보여 주고 싶었어.">
+          <img loading="lazy" src="materials/characters/member-33.jpg" width="640" height="640" alt="">
+          <span>연두</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="46" data-sex="여" data-name="주주" data-quote="오늘 제일 재밌었던 얘기, 나한테 먼저 해 줘.">
+          <img loading="lazy" src="materials/characters/member-46.jpg" width="640" height="640" alt="">
+          <span>주주</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="40" data-sex="남" data-name="이오" data-quote="하나, 둘… 어? 우리 동시에 말했네.">
+          <img loading="lazy" src="materials/characters/member-40.jpg" width="640" height="640" alt="">
+          <span>이오</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="6" data-sex="여" data-name="히히" data-quote="잠깐, 내 인생 첫 화잖아. 앞머리 괜찮아?">
+          <img src="materials/characters/hihi.jpg" width="640" height="640" alt="">
+          <span>히히</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="24" data-sex="남" data-name="박들춘" data-quote="솔플만 했는데… 오늘부터 듀오 어때?">
+          <img src="materials/characters/park.jpg" width="640" height="640" alt="">
+          <span>박들춘</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="11" data-sex="남" data-name="구월" data-quote="구월까지 기다릴 거 있어? 오늘 만나자.">
+          <img loading="lazy" src="materials/characters/member-11.jpg" width="640" height="640" alt="">
+          <span>구월</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="55" data-sex="남" data-name="파랑" data-quote="파도 한 번만 더 타고 올게. 진짜 마지막!">
+          <img loading="lazy" src="materials/characters/member-55.jpg" width="640" height="640" alt="">
+          <span>파랑</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="45" data-sex="남" data-name="죠륵디" data-quote="비 온다. 우산 한쪽 비었는데 같이 갈래?">
+          <img loading="lazy" src="materials/characters/member-45.jpg" width="640" height="640" alt="">
+          <span>죠륵디</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="32" data-sex="여" data-name="여름" data-quote="해 길 때 나가자. 저녁까지 놀 수 있어!">
+          <img loading="lazy" src="materials/characters/member-32.jpg" width="640" height="640" alt="">
+          <span>여름</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="3" data-sex="남" data-name="늉니" data-quote="내 이름 한 번에 읽었어? 우리 벌써 통하네.">
+          <img loading="lazy" src="materials/characters/member-03.jpg" width="640" height="640" alt="">
+          <span>늉니</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="9" data-sex="남" data-name="거미" data-quote="단톡에선 조용했지? 만나면 얘기가 좀 길어.">
+          <img loading="lazy" src="materials/characters/member-09.jpg" width="640" height="640" alt="">
+          <span>거미</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="48" data-sex="남" data-name="초록" data-quote="숲길은 이쪽이야. 솔잎 냄새 나지?">
+          <img loading="lazy" src="materials/characters/member-48.jpg" width="640" height="640" alt="">
+          <span>초록</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="23" data-sex="남" data-name="바위" data-quote="가방 줘. 이 정도는 한 손으로도 들어.">
+          <img loading="lazy" src="materials/characters/member-23.jpg" width="640" height="640" alt="">
+          <span>바위</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="53" data-sex="남" data-name="클로" data-quote="동전 하나만 빌려 줘. 사라지면 내 커피값!">
+          <img loading="lazy" src="materials/characters/member-53.jpg" width="640" height="640" alt="">
+          <span>클로</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="34" data-sex="여" data-name="우주" data-quote="단독 인터뷰예요. 방금 누구 보고 웃으셨죠?">
+          <img src="materials/characters/uju.jpg" width="640" height="640" alt="">
+          <span>우주</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="5" data-sex="남" data-name="도도" data-quote="먼저 말 걸어 줘서 좋아. 티 났어?">
+          <img loading="lazy" src="materials/characters/member-05.jpg" width="640" height="640" alt="">
+          <span>도도</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="47" data-sex="여" data-name="지나" data-quote="거기서 잠깐 웃어 봐. 방금 빛이 딱 좋았어.">
+          <img loading="lazy" src="materials/characters/member-47.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>지나</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="41" data-sex="남" data-name="자작" data-quote="직접 만든 거야. 조금 삐뚤어도 세상에 하나뿐이야.">
+          <img loading="lazy" src="materials/characters/member-41.jpg" width="640" height="640" alt="">
+          <span>자작</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="50" data-sex="여" data-name="춘식" data-quote="머리에 꽃 꽂았어. 한 송이 남는데 너도 할래?">
+          <img loading="lazy" src="materials/characters/member-50.jpg" width="640" height="640" alt="">
+          <span>춘식</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="1" data-sex="남" data-name="민민" data-quote="잠깐! 방금 그 설렘, 한 번만 더 재보자!">
+          <img src="materials/characters/minmin.jpg" width="640" height="640" alt="">
+          <span>민민</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="31" data-sex="여" data-name="씽씽" data-quote="지퍼 올렸고, 바람 좋고. 어디까지 가볼까?">
+          <img src="materials/characters/ssing.jpg" width="640" height="640" alt="">
+          <span>씽씽</span>
+        </button>
+        <button class="portrait" type="button" aria-pressed="false" data-id="49" data-sex="남" data-name="최강" data-quote="하이파이브! 아, 살살 할게.">
+          <img loading="lazy" src="materials/characters/member-49.jpg?v=portrait2" width="640" height="640" alt="">
+          <span>최강</span>
+        </button>
+      </div>
+      <p id="album-empty" hidden>해당 이름의 멤버가 없어요.</p>
+      <dialog class="confirm-box" id="confirm-character" aria-labelledby="confirm-title" aria-describedby="confirm-quote">
+        <img id="confirm-photo" alt="">
+        <p class="character-quote" id="confirm-quote"></p>
+        <h2 id="confirm-title"><span>선택한 캐릭터는</span> <span>‘<span id="confirm-name"></span>’입니다. 맞나요?</span></h2>
+        <button class="start-button" id="confirm-start" type="button">이 캐릭터로 시작하기</button>
+        <button class="secondary" id="choose-again" type="button">다시 고르기</button>
+      </dialog>
+    </section>
+    <section id="first-chat" class="screen play-stage" aria-label="플레이 장면" hidden>
+      <header class="stage-hud"><span id="stage-time"></span><div id="stage-hud-tools"><button id="open-album" type="button">가족 앨범</button></div></header>
+      <div id="stage-actors"></div>
+      <div id="stage-dock" aria-live="polite"></div>
+      <dialog id="family-album" aria-label="가족 앨범"><form method="dialog"><button autofocus>장면으로 돌아가기 ×</button></form><div id="family-content"></div></dialog>
+    </section>
+  </main>
+
+  <script>
+    const startScreen = document.querySelector('#start-screen');
+    const characterScreen = document.querySelector('#character-screen');
+    const characterTitle = document.querySelector('#character-title');
+
+    const portraits = document.querySelectorAll('.portrait');
+    const dialog = document.querySelector('#confirm-character');
+    const chat = document.querySelector('#first-chat');
+    const stories = [
+      {
+        id: 'dinner', title: '퇴근길에 폰이 울렸다',
+        scene: '저녁을 혼자 먹을까 하던 참에, 단톡방에 새 글이 올라왔다.',
+        message: '오늘 저녁 번개 갈 사람? 방금 식당에 두 자리 났대!',
+        choices: [
+          ['나 갈래! 한 자리 맡아 줘.', '입구에서 손 흔들게!', '나는 저녁 약속을 잡았다. 만나면 서로 손을 흔들기로 했다.'],
+          ['메뉴가 뭔데? 그게 제일 중요해.', '삼겹살! 김치도 같이 구워 준대.', '나는 메뉴부터 물었다. 덕분에 우린 좋아하는 음식 얘기로 금세 말이 통했다.'],
+          ['다음 번개는 내가 열게!', '약속이다! 다음엔 내가 갈게.', '오늘은 쉬고, 다음 모임은 내가 열기로 했다.']
+        ]
+      },
+      {
+        id: 'umbrella', title: '내 우산은 집에 있다',
+        scene: '역 출구에 서서 쏟아지는 비를 보고 있는데, 단톡방에 근처 사진이 떴다.',
+        message: '나 지금 2번 출구야. 우산 큰데 같이 쓸 사람?',
+        choices: [
+          ['나 바로 뒤에 있어. 같이 가자!', '뒤라고? 아, 찾았다!', '나는 우산 한쪽을 빌렸다. 정류장까지 걷는 동안 서로의 퇴근길을 알게 됐다.'],
+          ['나 카페 앞이야. 비 그칠 때까지 차 마실래?', '좋지! 창가에 자리 있어?', '나는 따뜻한 차를 제안했다. 우리는 빗소리를 들으며 첫 잔을 나눴다.']
+        ]
+      },
+      {
+        id: 'ticket', title: '내일 일정이 비었는데',
+        scene: '달력을 닫으려던 순간, 단톡방에 공연 티켓 사진이 올라왔다.',
+        message: '내일 공연 표가 한 장 남았어. 같이 갈 사람?',
+        choices: [
+          ['나 갈래! 떼창할 곡부터 알려 줘.', '플레이리스트 보낼게. 후렴은 꼭 같이 부르자!', '나는 공연 짝꿍이 생겼다. 내 재생목록에 둘이 부를 노래를 담았다.'],
+          ['어떤 공연이야? 네 최애곡부터 들어 볼래.', '그럼 이 곡부터! 첫 소절부터 좋아.', '나는 추천받은 곡을 들었다. 우리는 좋아하는 음악을 한 곡씩 주고받았다.']
+        ]
+      }
+    ];
+    let candidate;
+    document.querySelector('#choose-again').onclick = () => dialog.close();
+    document.querySelector('#confirm-start').onclick = () => {
+      if (game && !confirm('진행 중인 회차를 새 게임으로 바꿀까요?')) return;
+      dialog.close();
+      startRun(candidate.dataset.id);
+    };
+    for (const portrait of portraits) {
+      portrait.addEventListener('click', () => {
+        for (const card of portraits) card.setAttribute('aria-pressed', String(card === portrait));
+        candidate = portrait;
+        document.querySelector('#confirm-photo').src = portrait.querySelector('img').src;
+        document.querySelector('#confirm-name').textContent = portrait.dataset.name;
+        document.querySelector('#confirm-quote').textContent = portrait.dataset.quote;
+        dialog.showModal();
+      });
+    }
+    document.querySelector('#album-search').addEventListener('input', event => {
+      const query = event.target.value.trim();
+      let matches = 0;
+      for (const card of portraits) {
+        card.hidden = !card.dataset.name.includes(query);
+        if (!card.hidden) matches++;
+        if (card.hidden && card.getAttribute('aria-pressed') === 'true') {
+          card.setAttribute('aria-pressed', 'false');
+        }
+      }
+      document.querySelector('#album-empty').hidden = matches > 0;
+    });
+
+    function showCurrentScreen() {
+      if (dialog.open) dialog.close();
+      renderGame();
+    }
+
+    document.querySelector('#start-game').addEventListener('click', () => {
+      window.location.hash = 'character-select';
+    });
+
+    window.addEventListener('hashchange', showCurrentScreen);
+  </script>
+  <script src="stories.js"></script>
+  <script src="game.js"></script>
+  <script src="stage.js"></script>
+</body>
+</html>

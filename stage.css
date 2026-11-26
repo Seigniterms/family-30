@@ -134,3 +134,7 @@
 #kin-dialog{box-sizing:border-box;max-height:96dvh}.kin-pages button,#kin-detail .kin-card{min-height:44px}
 .ending-download{display:block;padding:12px;border:1px solid #bb926f;border-radius:12px;background:#fff2d7;color:#533947;text-decoration:none;text-align:center;font-weight:700;margin:5px 0}
 #life-body button:disabled{opacity:.5;cursor:default}
+.cake-print{background:linear-gradient(#f3d1ad,#d5a580);align-items:end}
+.little-cake{position:absolute;bottom:3%;left:36%;width:30%;height:30%;border-radius:20% 20% 12% 12%;background:linear-gradient(#fff2da 0 30%,#dc8281 31% 43%,#ffd599 44% 76%,#fff2da 77%);box-shadow:0 3px 4px #51334766}
+.little-cake::before{content:'';position:absolute;background:#d84448;left:40%;bottom:92%;width:24%;height:31%;border-radius:55% 55% 65% 65%}
+.little-cake.tilted{transform:rotate(13deg)}

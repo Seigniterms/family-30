@@ -87,6 +87,7 @@ function settleMeetup(e,index){
     const msg=index===0?'그때 자리 만들어 줘서 고마워. 우리 둘이 따로 얘기도 했어.':'다음에는 누가 오는지 먼저 말해 줘. 나도 마음의 준비는 하고 싶어.';
     addEcho(s.speaker,'meetup',msg,'번개가 끝난 뒤',[s.other]);
   }
+  game.log.at(-1).label=action.label;
   saveReunion(e,index);
   if(['argument','grudge','rival'].includes(s.kind))game.calmThrough=tick()+1;
   c.last=action.line;s.resolved=true;s.choice=index;s.line=action.line;
@@ -139,7 +140,7 @@ function reunionScene(m,mail=false){
 function finishReunion(e,index,mail=false){
   const m=mail?e.memoryThread:e.social.memoryThread,story=reunionScene(m,mail),a=story.choices[index];
   if(!a)return;
-  remember(m.id,story.title,a.line,'reunion');game.log.at(-1).thread=m.key;
+  remember(m.id,story.title,a.line,'reunion');game.log.at(-1).thread=m.key;game.log.at(-1).label=a.label;
   if(!mail && index===0){const c=meet(m.id);c.trust=(c.trust || 0)+1;}
   if(mail)e.result={label:a.label,line:a.line};
   else {e.social.resolved=true;e.social.line=a.line;}

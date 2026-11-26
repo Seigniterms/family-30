@@ -202,6 +202,18 @@ function renderStage(){
     dockButton('주변 보기',()=>focusOn(null),true);return;
   }
   const story=scene(event);
+  if(event.memoryThread?.kind==='date'){
+    actors.replaceChildren();
+    const wall=node('div','',actors,'snap-wall');
+    const print=node('div','',wall,'snap-print cake-print');
+    if(event.memoryThread.choice===0)for(const id of [game.player,event.id]){
+      const img=node('img','',print);img.src=kinPerson(id).image;img.alt=kinPerson(id).name;
+    }
+    const cake=node('span','',print,'little-cake');
+    cake.setAttribute('role','img');cake.setAttribute('aria-label',event.memoryThread.choice===0?'기울어진 딸기 케이크':'다시 만든 딸기 케이크');
+    if(event.memoryThread.choice===0)cake.classList.add('tilted');
+    node('small',kinPerson(event.id).name+' · 개인톡 사진',wall,'snap-caption');
+  }
   if(snapshotEvents.includes(event.type)){
     actors.replaceChildren();
     const wall=node('div','',actors,'snap-wall');

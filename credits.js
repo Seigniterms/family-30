@@ -53,8 +53,10 @@ function showCredits(replay=false){
   node('small','첫 봄부터 '+clockLabel()+'까지',reel,'credit-year');
   node('h1',members[game.player].name+(tick()===119?'의 30년':'의 이야기'),reel);
   if(game.snapshot?.frame!=null)photoPrint(reel,game.snapshot.frame);
+  const threads=new Map();
   for(const entry of creditMemories()){
-    const card=node('article','',reel,'credit-memory');
+    const card=threads.get(entry.thread) || node('article','',reel,'credit-memory');
+    if(entry.thread)threads.set(entry.thread,card);
     node('small',entry.year+'년 차 '+seasons[entry.season || 0],card,'credit-year');
     node('h2',entry.title,card);
     node('p',entry.memory,card);

@@ -13,16 +13,21 @@ function meetupSituation(guests){
   if(tick()<=(game.calmThrough ?? -1))return null;
   const pairs=[];
   for(let i=0;i<guests.length;i++)for(const b of guests.slice(i+1))pairs.push([guests[i],b]);
-  const strained=pairs.find(pair=>(game.feuds || []).some(f=>pair.every(id=>f.includes(id))) ||
-    game.townPairs?.some(p=>p.end && pair.every(id=>p.people.includes(id))));
-  if(strained){
-    const former=(game.townPairs || []).some(p=>p.end && strained.every(id=>p.people.includes(id)));
-    return {kind:'grudge',speaker:strained[0],other:strained[1],former};
+  function reconciled([a,b]){
+    const since=sharedBond(a,b)?.reconciledAt;
+    return since!=null && since>=(formerCouple(a,b)?.end ?? 0) && !ongoingFeud(a,b);
   }
+  const strained=pairs.find(([a,b])=>ongoingFeud(a,b)) ||
+    pairs.find(pair=>formerCouple(...pair) && !reconciled(pair));
+  if(strained)return {kind:'grudge',speaker:strained[0],other:strained[1],former:!!formerCouple(...strained)};
+  const healing=pairs.find(pair=>reconciled(pair) && sharedBond(...pair).reunionPending);
+  if(healing)return {kind:'peace',speaker:healing[0],other:healing[1]};
   const roll=pick(['rival','grudge','regular','regular']);
   if(roll==='regular')return null;
   if(roll==='grudge'){
-    const [speaker,other]=pick(pairs);
+    const uneasy=pairs.filter(pair=>!reconciled(pair));
+    if(!uneasy.length)return null;
+    const [speaker,other]=pick(uneasy);
     return {kind:roll,speaker,other};
   }
   const target=guests.length>2?pick(guests):game.player;
@@ -49,6 +54,9 @@ function meetupScene(e){
     case 'argument':return {title:'비 오는 대벙',setup:'밖에는 비가 쏟아진다. 나는 막차를 확인하고 출입문 옆 우산을 집으려 한다.',message:'지금 가려고? 난 오늘 네 얼굴 보고 얘기 좀 하고 싶었는데.',choices:[
       opt('잠깐 앉아서 끝까지 듣는다.','막차까지 몇 분 남았는지 같이 확인했다. 둘이 우산을 쓰고 정류장까지 걸으며 얘기했다.'),
       opt('막차 놓치면 어떻게 가. 나 먼저 갈게.','급히 가게를 나왔다. 문에 비친 상대의 손에 내 우산이 들려 있었다.')]};
+    case 'peace':return {title:'이번엔 나란히',setup:name(s.speaker)+' 옆자리에 '+name(s.other)+'의 가방이 놓여 있다.',message:'오늘은 자리 안 바꿔 줘도 돼. 지난번에 얘기하고 나서 우리가 먼저 같이 앉자고 했어.',choices:[
+      opt('그럼 셋이 여기 앉을까?','셋이 한 테이블에서 메뉴를 골랐다. 지난번에 사이에 두었던 빈 의자는 가방 자리가 됐다.'),
+      opt('알겠어. 편하게 얘기해.','두 사람이 먼저 서로에게 물을 따라 줬다. 나는 다른 테이블에도 인사하러 갔다.')]};
     case 'grudge':return {title:'누가 이 사람 불렀어?',message:name(s.other)+'도 왔네. 나 자리 좀 바꿔 줄래? '+(s.former?'헤어지고 아직 제대로 얘기도 못 해 봤어.':'오늘은 둘이 같이 앉기 좀 불편해.'),choices:[
       opt('둘의 말을 차례로 들어 본다.','각자 불편했던 점을 얘기할 시간을 줬다. 두 사람은 오늘 한 테이블에 앉아 보기로 했다.'),
       opt('오늘은 자리를 따로 잡는다.','테이블을 갈랐다. 모임은 이어졌지만 둘은 끝내 눈을 마주치지 않았다.')]};
@@ -75,8 +83,16 @@ function settleMeetup(e,index){
   }
   if(s.kind==='grudge'){
     game.feuds=(game.feuds || []).filter(pair=>!(pair.includes(s.speaker) && pair.includes(s.other)));
-    if(index===0)bond(s.speaker,s.other);
+    if(index===0){
+      bond(s.speaker,s.other);
+      const link=sharedBond(s.speaker,s.other);
+      link.reconciledAt=tick();link.reunionPending=true;
+    }
     else game.feuds.push([s.speaker,s.other]);
+  }
+  if(s.kind==='peace'){
+    const link=sharedBond(s.speaker,s.other);
+    if(link)link.reunionPending=false;
   }
   if(s.kind==='rival' && index<2){
     const winner=index===0?s.speaker:s.target===game.player?s.other:s.preferred;
@@ -94,9 +110,28 @@ function settleMeetup(e,index){
   if(s.kind==='argument' && index===1){
     e.result={label:action.label,line:action.line,memory:action.line};
   }
-  page=0;lastBeat=null;navigate();
+  page=0;lastBeat=null;navigate(e);
 }
 
+function pruneFriendshipThreads(){
+  const isFriend=id=>!!game.contacts[id]?.friendsOnly;
+  const romanticMemory=m=>m && isFriend(m.id) && (m.kind==='date' ||
+    (m.kind==='rival' && m.target===game.player && m.winner===m.id && m.choice!==2));
+  function stale(e){
+    if(e.type==='reunionMail')return romanticMemory(e.memoryThread);
+    if(e.type!=='echo' || e.kind!=='incident' || !isFriend(e.id))return false;
+    // Before the marker was stored, every private incident used the romantic script.
+    return e.romantic ?? !e.guests?.length;
+  }
+  game.echoes=(game.echoes || []).filter(e=>!stale(e));
+  game.reunions=(game.reunions || []).filter(m=>!romanticMemory(m));
+  if(game.queue)game.queue=game.queue.filter(e=>!stale(e));
+  const e=game.event;
+  if(!e || e.result)return;
+  if(stale(e))game.event=null;
+  else if(e.social && !e.social.resolved && (romanticMemory(e.social.memoryThread) ||
+    (e.social.kind==='date' && isFriend(e.social.speaker))))delete e.social;
+}
 function pendingReunions(){
   return (game.reunions || []).filter(m=>tick()>m.when && !quietContact(m.id) && !m.people.some(isCut));
 }
@@ -153,9 +188,9 @@ function reunionScene(m,mail=false){
 function finishReunion(e,index,mail=false){
   const m=mail?e.memoryThread:e.social.memoryThread,story=reunionScene(m,mail),a=story.choices[index];
   if(!a)return;
-  remember(m.id,story.title,a.line,'reunion');game.log.at(-1).thread=m.key;game.log.at(-1).label=a.label;
+  remember(m.id,story.title,a.line,'reunion',mail?[]:e.guests.filter(id=>id!==m.id));game.log.at(-1).thread=m.key;game.log.at(-1).label=a.label;
   if(!mail && index===0){const c=meet(m.id);c.trust=(c.trust || 0)+1;}
   if(mail)e.result={label:a.label,line:a.line,spoken:false};
   else {e.social.resolved=true;e.social.line=a.line;}
-  page=0;lastBeat=null;navigate();
+  page=0;lastBeat=null;navigate(e);
 }

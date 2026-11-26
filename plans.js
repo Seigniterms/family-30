@@ -171,5 +171,5 @@ function answerPersonal(e,index){
   remember(e.id,story.title,memory,e.type,people);
   e.result={label:a.label,line:a.reply || a.line,memory:a.line,spoken:!!a.reply,
     speaker:e.type==='childVisit'?e.kid:e.type==='calendarVisit'?e.people[0]:e.id};
-  navigate();
+  navigate(e);
 }

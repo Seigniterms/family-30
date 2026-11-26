@@ -195,5 +195,22 @@ function ending(g){
     ['다시 문을 연 우리',count('split')*2+Math.max(0,g.marriages.length-1)*12]
   ];
   const tests=[['첫사랑',count('date')>0],['평생의 짝',longest>=10],['다시 시작',g.marriages.length>1],['혼자서도 가족',g.children.some(c=>c.parents.length===1)],['두 집의 기억',g.marriages.some(m=>m.end!==null)&&g.children.length],['공연 친구',g.keepsakes?.some(k=>k.title.includes('공연'))],['먼저 건넨 손',count('repair')>0],['동네 단골',events.some(e=>e.code?.startsWith('town-'))],['가족 앨범',g.keepsakes?.length>=2],['오래된 친구',Object.values(g.contacts).some(c=>c.role==='친구')]];
-  return {title:epilogue(g)?.title || scores.sort((a,b)=>b[1]-a[1])[0][0],tags:tests.filter(t=>t[1]).map(t=>t[0])};
+  const threads=[];
+  const kids=g.children.filter(k=>!g.blocked?.includes(k.id));
+  if(kids.length)threads.push({title:'가족',line:'내가 돌보며 키운 아이는 '+kids.map(k=>members[k.id].name).join(' · ')+'.'});
+  const marriages=g.marriages.filter(m=>!g.blocked?.includes(m.id));
+  if(marriages.length){
+    const m=marriages.at(-1),duration=(m.end ?? g.year)-m.start;
+    const name=members[m.id].name;
+    threads.push({title:'결혼',line:m.start+'년 차, 내 결혼식의 배우자는 '+name+'. '+(m.end!=null?m.end+'년 차에 각자의 길을 택했다.':duration?duration+'년이 지난 지금도 함께 지낸다.':'올해 부부가 되었다.')});
+  }
+  const invited=Object.entries(g.club?.guests || {}).filter(([id,n])=>n>=3 && !g.blocked?.includes(id)).sort((a,b)=>b[1]-a[1])[0];
+  if(invited)threads.push({title:'토요일마다 만난 사이',line:'번개에서 '+invited[1]+'번 만난 사람은 '+members[invited[0]].name+'.'});
+  if(g.club?.completed)threads.push({title:g.club.goal,line:'우리 모임의 목표를 달성했다. 내가 연 번개는 모두 '+g.club.visits+'번.'});
+  const highest=scores.sort((a,b)=>b[1]-a[1])[0];
+  const socialTitle=epilogue(g)?.title;
+  // An established family path can headline its own ending while friendships
+  // and club milestones still receive independent entries in the reel.
+  const title=highest[0]==='내 속도로 살아온 날들' && socialTitle?socialTitle:highest[0];
+  return {title,threads,tags:tests.filter(t=>t[1]).map(t=>t[0])};
 }

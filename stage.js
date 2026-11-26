@@ -64,7 +64,7 @@ function stageEntries(){
   }
   return visible;
 }
-function isLetter(e){return e.invited || ['proposal','warning','departure','reconnect','photoNote','photoReunion','photoWinter','approach'].includes(e.type);}
+function isLetter(e){return e.invited || ['proposal','warning','departure','reconnect','photoNote','photoReunion','photoWinter','photoPromise','approach'].includes(e.type);}
 function focusOn(entry){
   if(entry?.kind==='event' && isLetter(entry.e)){entry.e.read=true;persist();}
   preview=entry;courtesy=null;browsingTopics=false;page=0;lastBeat=null;renderStage();
@@ -237,7 +237,7 @@ function renderStage(){
     if(event.memoryThread.choice===0)cake.classList.add('tilted');
     node('small',kinPerson(event.id).name+' · 개인톡 사진',wall,'snap-caption');
   }
-  if(snapshotEvents.includes(event.type)){
+  if(snapshotEvents.includes(event.type) && event.type!=='photoPromise'){
     actors.replaceChildren();
     const wall=node('div','',actors,'snap-wall');
     if(event.type==='snapshot' && !event.result){
@@ -280,6 +280,11 @@ function renderStage(){
     line.setAttribute('aria-label',line.textContent+' · 다음 대사');line.onclick=nextLine;
     line.onkeydown=ev=>{if(['Enter',' '].includes(ev.key)){ev.preventDefault();nextLine();}};
   } else if(event.result){
+    const entry=game.log[event.result.logIndex];
+    if(entry && visibleMemory(entry)){
+      const save=node('button','장면 저장',el('stage-hud-tools'),'stage-back');
+      save.onclick=()=>momentExport(entry);
+    }
     const leave=()=>{game.event=null;preview=null;page=0;lastBeat=null;};
     const letter=game.queue?.find(e=>e.type==='photoNote' && !e.read);
     const reveal=['marry','arrival'].includes(game.log.at(-1)?.effect);

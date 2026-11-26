@@ -1,5 +1,6 @@
 // The spring photo keeps its actual cast throughout the run.
-function firstSnapshot(){
+function firstSnapshot(chooseOnHost=true){
+  if(chooseOnHost)game.club.chooseOnHost=true;
   const cast=(names,exclude)=>pick(originalMembers.filter(id=>id!==game.player && id!==exclude && names.includes(members[id].name)));
   const joker=cast(['박들춘','유유','민민']);
   const sender=cast(['히히','우주','씽씽'],joker);
@@ -8,6 +9,37 @@ function firstSnapshot(){
   return {type:'snapshot',id:joker};
 }
 const snapChoice=(label,line,effect='memory')=>({label,line,effect,spoken:true});
+const summerPlans={
+  히히:{
+    pair:['가을엔 우리 사진 같이 인화하러 가자.','좋아. 인화지 두 장 챙겨 갈게.','히히의 사진 봉투','여름에 찍은 우리 사진 뽑았어. 똑같은 걸 두 장 뽑았는데, 한 장 가질래?',
+      '뒷면에 서로 이름을 써 주자.','내 이름 옆에 오늘 날짜도 적어 줄래? 나중에 다시 보고 싶어.',
+      '한 장은 네가 먼저 골라.','그럼 난 이걸로! 네 옆에서 내 눈이 제일 많이 웃고 있어.'],
+    group:['가을에 셋이서 사진 전시하자.','내가 집게 챙겨 올게. 셋이 한 장씩 걸자!','셋이 연 작은 사진전','여름 사진 다 뽑아 왔어. 우리 셋이 처음 모였던 날 사진도 걸까?',
+      '처음 찍은 컷을 가운데 걸자.','좋아. 맨 처음 걸린 게 우리 셋 사진이면 좋겠다.',
+      '셋이 한 장씩 골라 보자.','어느 사진을 걸지 나부터 고민되네. 나는 흔들린 컷!']
+  },
+  우주:{
+    pair:['가을에 나랑 단독 인터뷰할래?','그럼 질문 하나씩 준비하자. 나도 대답할게.','우주의 단독 인터뷰','약속대로 수첩 들고 왔어. 여름에 같이 사진 찍고, 집에 가서 무슨 생각 했어?',
+      '다음엔 내가 먼저 연락하고 싶었어.','그 말은 기사에 안 쓸래. 나만 읽고 싶거든.',
+      '이번엔 내가 물을래. 넌 어땠어?','집에 와서 다음에 너 만날 핑계부터 생각했어.'],
+    group:['가을에 셋이 번개 신문 만들자.','취재는 내가 맡을게. 가을에 사진 들고 모이자.','단톡방 신문 창간호','신문 첫 장을 비워 놨어. 우리 셋이 찍은 여름 사진에 어떤 제목을 붙일까?',
+      '삼각대 원정대, 드디어 한 컷!','채택! 사진 밑에는 셋 이름도 나란히 넣을게.',
+      '제목은 셋이 한 단어씩 쓰자.','나는 ‘우리’로 시작할래. 다음 단어는 네 차례야.']
+  },
+  씽씽:{
+    pair:['가을에 나랑 강변 걸을래?','좋아. 바람 잘 드는 강변 벤치에서 만나자.','씽씽이 기다린 강변','여기가 여름에 말한 강변이야. 벤치에서 쉴까, 물가까지 같이 걸을까?',
+      '벤치에 조금 더 앉아 있자.','급하게 갈 데 없어. 네가 먼저 일어날 때까지 나도 여기 있을래.',
+      '너랑 물가까지 걸어갈래.','바람 세니까 내 옆으로 와. 천천히 가자.'],
+    group:['가을에 셋이 강변 소풍 가자.','좋아. 바람 덜 부는 자리 내가 찾아볼게.','강변에 펼친 돗자리','약속대로 셋 다 왔네. 여기 앉아 봐. 우리 셋 다 나오게 삼각대도 세워 놨어.',
+      '사진부터 찍고 편하게 놀자.','셋, 둘, 하나! 찍혔다. 이제 신발 벗고 쉬자.',
+      '먼저 간식부터 나누자.','내가 귤 가져왔어. 사이좋게 하나씩 먹자.']
+  }
+};
+function summerPlan(e){
+  const s=game.snapshot;
+  const plans=summerPlans[members[s.sender].name] || summerPlans.히히;
+  return plans[(e.group ?? (s.reply===1))?'group':'pair'];
+}
 function snapshotScene(e){
   const s=game.snapshot, name=members[s.joker].name;
   if(e.type==='snapshot')return {title:'첫 번개 대표 사진',message:'우리 셋이 찍은 사진이야. 어느 쪽을 단톡방 배경으로 할까?',choices:[
@@ -22,13 +54,18 @@ function snapshotScene(e){
       snapChoice('다음엔 셋이 제대로 찍자.','좋아. 다음 번개엔 내가 삼각대 챙겨 갈게.','friend'),
       snapChoice('봤어. 원본 보내줘서 고마워.','응. 오늘 만나서 반가웠어. 잘 들어가!')]};
   }
+  if(e.type==='photoPromise'){
+    const p=summerPlan(e);
+    return {title:p[2],message:p[3],choices:[snapChoice(p[4],p[5],e.group?'friend':'closer'),snapChoice(p[6],p[7])]};
+  }
   if(e.type==='photoReunion'){
+    const plan=summerPlan(e),book=snapChoice(plan[0],plan[1]);
     if(s.reply===0)return {title:'이번에는 둘이서',message:'지난번엔 단체 사진을 잘랐잖아. 오늘은 처음부터 둘이 찍을까?',choices:[
       snapChoice('응. 이번엔 내가 네 옆에 설게.','찍혔다. 근데… 조금만 더 이렇게 있어도 돼?','closer'),
-      snapChoice('사진은 조금 이따 찍고, 같이 걸을래?','좋아. 걷다가 배고프면 둘이 저녁도 먹자.','dinnerPromise')]};
+      snapChoice('사진은 조금 이따 찍고, 같이 걸을래?','좋아. 걷다가 배고프면 둘이 저녁도 먹자.','dinnerPromise'),book]};
     return {title:'셋이 다시 모인 날',message:'삼각대 가져왔어. 타이머는 몇 초면 셋 다 들어올까?',choices:[
       snapChoice('삼 초! 셋이 손잡고 뛰자.','이번엔 셋 다 흔들렸네. 이거 단톡에 올려도 돼?','friend'),
-      snapChoice('옆 테이블에 찍어 달라고 하자.','드디어 셋 다 멀쩡해! 이상하게 첫 사진이 더 웃기긴 하다.')]};
+      snapChoice('옆 테이블에 찍어 달라고 하자.','드디어 셋 다 멀쩡해! 이상하게 첫 사진이 더 웃기긴 하다.'),book]};
   }
   if(e.type==='photoWinter' && game.year>1){
     const years=game.year-1;
@@ -40,7 +77,7 @@ function snapshotScene(e){
     snapChoice('같은 자리에서 한 장 더 찍자.','이번엔 네 옆에 미리 서 있을래. 자, 이제 찍어!','friend'),
     snapChoice('봄에 찍은 사진, 그대로 간직하자.','응. 폰 바꿔도 이 사진은 꼭 옮겨야지.')]};
 }
-const snapshotEvents=['snapshot','photoNote','photoReunion','photoWinter'];
+const snapshotEvents=['snapshot','photoNote','photoReunion','photoWinter','photoPromise'];
 function queueSnapshot(type,id,other){
   game.queue ||= [];
   game.queue.unshift({type,id,other,key:type+'-'+tick(),until:tick()});
@@ -55,12 +92,37 @@ function snapshotAnswer(e,index){
       e.step=1;navigate();return true;
     }
     s.reply=e.step===1?0:index;
-  }else if(e.type==='photoReunion' && s.reply===1)bond(s.sender,s.joker);
+  }else if(e.type==='photoReunion'){
+    if(s.reply===1)bond(s.sender,s.joker);
+    if(index===2)s.promiseDue=tick()+1;
+  }
+}
+function prunePhotoThreads(){
+  const s=game.snapshot;
+  if(!s || s.reply!==0 || !(game.contacts[s.sender]?.friendsOnly || closeKin(game.player,s.sender)))return;
+  const privateScene=e=>e && e.id===s.sender && ['photoReunion','photoPromise'].includes(e.type);
+  delete s.promiseDue;
+  game.queue=(game.queue || []).filter(e=>!privateScene(e));
+  if(!game.event?.result && privateScene(game.event))game.event=null;
 }
 function seasonSnapshot(){
   const s=game.snapshot;
-  if(game.finale || !s || s.frame==null || [s.joker,s.sender].some(isCut))return;
-  if(tick()===1 && [0,1].includes(s.reply) && !quietContact(s.sender))
+  if(game.finale || !s || s.frame==null)return;
+  const group=s.reply===1, people=group?[s.sender,s.joker]:[s.sender];
+  const unavailable=people.some(id=>isCut(id) || quietContact(id) || ['new','final'].includes(game.contacts[id]?.warning)) ||
+    (!group && (game.contacts[s.sender]?.friendsOnly || closeKin(game.player,s.sender)));
+  if(unavailable)game.queue=game.queue.filter(e=>e.type!=='photoPromise');
+  if(s.promiseDue!=null){
+    const due=s.promiseDue;
+    if(people.some(isCut) || (!group && (game.contacts[s.sender]?.friendsOnly || closeKin(game.player,s.sender))) || tick()>due+1)delete s.promiseDue;
+    else if(tick()>=due && !unavailable &&
+        ![...(game.obligations || []),game.familyDate].some(e=>e && people.includes(e.id))){
+      game.queue.unshift({type:'photoPromise',id:s.sender,guests:group?[s.joker]:[],group,key:'summer-plan-'+due,until:due+1});
+      delete s.promiseDue;
+    }
+  }
+  if([s.joker,s.sender].some(isCut))return;
+  if(tick()===1 && [0,1].includes(s.reply) && !unavailable)
     queueSnapshot('photoReunion',s.sender,s.joker);
   if((game.season===3 && [1,5,15,30].includes(game.year)) && !quietContact(s.joker))
     queueSnapshot('photoWinter',s.joker,s.sender);

@@ -478,7 +478,6 @@
         <img id="confirm-photo" alt="">
         <p class="character-quote" id="confirm-quote"></p>
         <h2 id="confirm-title"><span>선택한 캐릭터는</span> <span>‘<span id="confirm-name"></span>’입니다. 맞나요?</span></h2>
-        <label class="run-goal">이번 이야기 <select id="run-goal"><option>동창들의 아지트</option><option>한 지붕 작업실</option><option>골목 야식회</option></select></label>
         <button class="start-button" id="confirm-start" type="button">이 캐릭터로 시작하기</button>
         <button class="secondary" id="choose-again" type="button">다시 고르기</button>
       </dialog>
@@ -535,7 +534,7 @@
     document.querySelector('#confirm-start').onclick = () => {
       if (game && !game.ended && !confirm('진행 중인 회차를 새 게임으로 바꿀까요?')) return;
       dialog.close();
-      startRun(candidate.dataset.id, null, null, document.getElementById('run-goal').value);
+      startRun(candidate.dataset.id);
     };
     for (const portrait of portraits) {
       portrait.addEventListener('click', () => {
@@ -577,6 +576,7 @@
   <script src="life.js"></script>
   <script src="kin.js"></script>
   <script src="plans.js"></script>
+  <script src="moment-image.js"></script>
   <script src="ending-image.js"></script>
   <script src="credits.js"></script>
   <script src="snapshots.js"></script>

@@ -28,7 +28,18 @@ function persist() {
   try { localStorage.setItem(saveKey, JSON.stringify(game)); el('save-warning').hidden=true; }
   catch { el('save-warning').hidden=false; }
 }
-function navigate() {
+function navigate(resolved) {
+  if(resolved?.result){
+    const entry=game.log.at(-1),result=resolved.result;
+    entry.label=result.label;
+    if(['echo','weddingLetter','photoNote','reunionMail'].includes(resolved.type))
+      entry.present=[game.player,resolved.id];
+    if(result.spoken){
+      entry.reply=result.line;
+      entry.speaker=sceneSpeaker(resolved,{});
+    }
+    result.logIndex=game.log.length-1;
+  }
   persist();
   const hash = game.event ? '#first-chat' : '#family-tree';
   if (location.hash === hash) renderGame();
@@ -40,7 +51,7 @@ function startRun(player, sender, story, goal) {
     season:0, queue:[], contacts:{}, children:[], marriages:[], log:[], done:false, extra:false, ended:false};
   initLife();
   if(households.includes(goal))game.club.goal=goal;
-  if(!sender && !story){game.event=firstSnapshot();navigate();return;}
+  if(!sender && !story){game.event=firstSnapshot(!households.includes(goal));navigate();return;}
   const id = sender && !isCut(sender) ? sender : pick(unused());
   if(!id){game.event={type:'quiet',id:player};navigate();return;}
   meet(id);
@@ -440,6 +451,16 @@ function chooseAnnual() {
   const annual=childAtSchool ? {type:'sports',id:game.player,kid:childAtSchool.id} : pick(pool);
   return annual;
 }
+function chooseFriendship(id){
+  const c=game.contacts[id];
+  c.friendsOnly=true;
+  const dates=['dinnerDate','umbrellaDate'];
+  if(c.promise && dates.includes(c.plan)){c.promise=false;delete c.waitAt;delete c.due;}
+  game.queue=game.queue.filter(e=>e.id!==id || !(dates.includes(e.type) || e.type==='approach' || (e.type==='proposal' && e.kind==='date')));
+  game.diary=game.diary.filter(p=>!(p.people.length===1 && p.people[0]===id && dates.includes(p.kind)));
+  pruneFriendshipThreads();
+  prunePhotoThreads();
+}
 function answer(index) {
   const e=game.event;
   if(e && !e.result && ['calendarVisit','childVisit','weddingLetter'].includes(e.type)){answerPersonal(e,index);return;}
@@ -457,9 +478,9 @@ function answer(index) {
       const guest=guests.length?pick(guests):pick(unused());
       if(guest){meet(guest);proposePlan('groupMeal',[e.id,guest]);}
     }
-    if(index===2)c.friendsOnly=true;
+    if(index===2)chooseFriendship(e.id);
   }
-  if(e.type==='proposal' && e.kind==='date' && action.effect==='no')c.friendsOnly=true;
+  if(e.type==='proposal' && e.kind==='date' && action.effect==='no')chooseFriendship(e.id);
   if(c) c.pace ??= temperament(e.id);
   if(action.offer){
     const outcome=decide(c,action.offer);
@@ -561,12 +582,15 @@ function answer(index) {
   game.log.push({year:game.year,season:game.season || 0,code:e.code,id:e.id,title,memory,effect:action.effect, label:action.label});
   if(snapshotEvents.includes(e.type)){
     const s=game.snapshot;
-    const groupPhoto=e.type==='snapshot' || e.type==='photoWinter' || (e.type==='photoReunion' && s.reply===1);
+    const groupPhoto=e.type==='snapshot' || e.type==='photoWinter' || (['photoReunion','photoPromise'].includes(e.type) && s.reply===1);
     if(groupPhoto)game.log.at(-1).others=[e.id===s.joker?s.sender:s.joker];
   }
+  const entry=game.log.at(-1);
+  if(e.kid && ['sports','sportsLater','arrival'].includes(e.type))entry.others=[e.kid];
+  if(e.type==='ticketChat' && e.other)entry.others=[e.other];
   game.done=true;
   if(action.offer && action.effect==='no' && !game.echoes.some(x=>x.id===e.id && x.kind==='retry')) addEcho(e.id,'retry','지난번 대답이 마음에 걸렸어. 이번엔 친구들이랑 같이 국수 먹을래?', '분식집 단체석');
-  navigate();
+  navigate(e);
 }
 function node(tag,text,parent,cls) {
   const n=document.createElement(tag);
@@ -647,7 +671,12 @@ function fillAlbum() {
   }
   albumLife(box);
   const timeline=details(box,'내 연표 · '+visibleLog.length+'개의 기억');
-  for(const entry of visibleLog) node('p',logText(entry),timeline);
+  for(const entry of visibleLog){
+    const row=node('div','',timeline,'memory-card');
+    node('p',logText(entry),row);
+    const save=node('button','이 장면 저장',row,'moment-link');
+    save.onclick=()=>momentExport(entry);
+  }
 }
 function renderGame() {
   if(el('kin-dialog').open)el('kin-dialog').close();

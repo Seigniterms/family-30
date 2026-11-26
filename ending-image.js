@@ -45,6 +45,11 @@ async function buildEndingImage(){
   words(kinPerson(game.player).name+'의 이야기 · '+clockLabel(),30);
   if(end.tags.length)words(end.tags.join('   ·   '),23);
   if(epilogue(game)?.line)words(epilogue(game).line);
+  for(const t of end.threads){section(t.title);words(t.line);}
+  for(const t of communityCredits(cast)){
+    section(t.title);
+    for(const n of t.events){words(seasonDate(n.when),22,600);words(townCreditLine(n));}
+  }
   if(snapshot){
     section('첫 번개 대표 사진');
     const order=[game.player,snapshot.sender,snapshot.joker];
@@ -61,7 +66,7 @@ async function buildEndingImage(){
         '<text x="'+x+'" y="'+(y+169)+'" font-size="22">'+xmlText(cast.get(id))+'</text>');
     });y+=188;
   }
-  section('우리 모임');words(game.club.goal+' · 번개 '+game.club.visits+'회');
+  section('우리 모임');words(game.club.chooseOnHost?'아직 주최한 번개 없음':game.club.goal+' · 번개 '+game.club.visits+'회');
   if(game.club.completed)words(goals[game.club.goal].reward);
   for(const [kind,count] of Object.entries(game.club.tracks))words(kind+' · '+count+'회',23);
   const links=new Set();

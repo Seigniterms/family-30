@@ -141,3 +141,5 @@
 #stage-dock .actor-dialogue{position:relative;inset:auto;transform:none;justify-self:center;box-sizing:border-box;width:fit-content;max-width:100%;text-align:left}
 .voice-name{display:block;color:#8a4739;font-size:12px;line-height:1.4;margin-bottom:2px}
 #stage-dock .stage-narration{background:#fff4dfed;color:#4d4247;font-weight:500}
+.moment-preview{display:block;max-width:100%;max-height:48dvh;margin:auto;object-fit:contain;border-radius:10px}
+.moment-link{font:inherit;font-size:.85rem;color:#724537;background:#fff4da;border:1px solid #bf986e;border-radius:8px;padding:5px 10px}

@@ -28,6 +28,29 @@ function closeKin(a,b){
 function townNews(pair,title,text,extra=[]){
   (game.townNews ||= []).push({people:[...pair.people,...extra],title,text,when:tick()});
 }
+function sharedBond(a,b){
+  return (game.bonds || []).find(pair=>pair.people.includes(a) && pair.people.includes(b));
+}
+function ongoingFeud(a,b){
+  return (game.feuds || []).some(pair=>pair.includes(a) && pair.includes(b));
+}
+function formerCouple(a,b){
+  return game.townPairs?.find(pair=>pair.end!=null && pair.people.includes(a) && pair.people.includes(b));
+}
+function townDecision(p){
+  const [a,b]=p.people;
+  if(p.people.includes(spouse()))return {split:true,reason:'한 사람이 다른 가정을 꾸리면서 두 사람은 여기서 헤어지기로 했다.'};
+  const visits=sharedBond(a,b)?.visits || 0;
+  const closer=visits>(p.startVisits ?? visits);
+  const strained=ongoingFeud(a,b);
+  // Previous saves store the couple’s original decision. A change of heart is theirs to make.
+  let split=p.partWays;
+  if(closer && !strained && split)split=pick([true,false,false]);
+  if(strained && !split)split=pick([false,true,true]);
+  const reason=strained?(split?'번개에서 틀어진 뒤 둘이 따로 만나 봤지만, 결국 여기까지 하기로 했다.':'다투던 둘이 따로 오래 얘기했다. 다음 모임에는 직접 청첩장을 들고 왔다.'):
+    closer?(split?'여러 번 만나 본 끝에, 둘은 연인보다 친구 사이가 더 편하다고 했다.':'모임에서 자주 마주치던 두 사람이 이번에는 함께 살 집을 구했다.'):'';
+  return {split,reason};
+}
 function progressTown(){
   if(game.townTick===tick())return;
   game.townTick=tick();
@@ -40,12 +63,14 @@ function progressTown(){
   });
   const couples=game.townPairs.filter(p=>!p.people.some(isCut) && !p.end);
   for(const p of couples){
+    p.startVisits ??= sharedBond(...p.people)?.visits || 0;
     const age=tick()-p.since;
     if(p.status==='연인' && age>=p.decision){
-      if(p.partWays || p.people.includes(spouse())){
-        p.status='옛 연인';p.end=tick();townNews(p,'각자의 길','두 사람은 연애를 끝내고 각자의 생활로 돌아갔다.');
+      const decision=townDecision(p);
+      if(decision.split){
+        p.status='옛 연인';p.end=tick();townNews(p,'각자의 길',decision.reason || '두 사람은 연애를 끝내고 각자의 생활로 돌아갔다.');
       }else{
-        p.status='배우자';p.wedding=tick();weddingNotice(p);townNews(p,'결혼 소식','가장 가까운 사람들 앞에서 두 사람이 결혼했다.');
+        p.status='배우자';p.wedding=tick();weddingNotice(p);townNews(p,'결혼 소식',decision.reason || '가장 가까운 사람들 앞에서 두 사람이 결혼했다.');
       }
     }else if(p.status==='배우자' && tick()===p.nextChild){
       const id='child-'+(game.townKids.length+1);
@@ -76,7 +101,7 @@ function progressTown(){
   if(!candidates.length)candidates=unused().filter(matches);
   if(!candidates.length)return;
   const b=pick(candidates);if(members[b] && !children.some(c=>c.id===b))meet(b);
-  const p={people:[a,b],status:'연인',since:tick(),decision:pick([4,6,8]),partWays:pick([false,false,true]),nextChild:tick()+pick([12,16,20])};
+  const p={people:[a,b],startVisits:sharedBond(a,b)?.visits || 0,status:'연인',since:tick(),decision:pick([4,6,8]),partWays:pick([false,false,true]),nextChild:tick()+pick([12,16,20])};
   game.townPairs.push(p);townNews(p,'두 사람의 첫날','둘이서 만나기 시작했다는 소식이 전해졌다.');
 }
 function connections(id){

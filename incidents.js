@@ -50,10 +50,24 @@ const incidents={
     keepsake:'촛불 대신 켜진 불빛',echo:'그날 네가 폰으로 비춰 준 덕에 케이크 안 떨어뜨렸어. 다음엔 첫 조각 네가 골라.'
   }
 };
+// Private conversations can also be close friendships or family memories.
+const friendlyIncidents={
+  mic:{whisper:'네 이름을 불러야 다음 소절을 받지! 우리 둘 다 박자 놓친 거 들렸어?',pair:'후렴 들어오는 신호부터 맞춰 보자.',pairReply:'내가 손가락 세 개 펴면 들어와. 이번엔 둘 다 놓치지 말자.',quietReply:'좋아. 우리 둘이 연습한 다음에 들려주자.',echo:'손가락 세 개 펴는 거 기억하지? 오늘 혼자 노래하다가 나도 모르게 손 들었어.',secret:'우리 음이탈 난 부분 다시 들어 봤어. 딱 같은 데서 틀렸더라.'},
+  bag:{whisper:'카드에 쿠키 점수 적어 줘. 다른 사람들은 다 맛있다고만 해. 너는 솔직하게 말해 주잖아.',pair:'하나 더 먹고 시식평을 적는다.',pairReply:'가장자리가 제일 맛있다고? 다음 판은 작게 여러 개 구워 볼게.',quietReply:'좋아. 점수는 나중에 알려 줘. 다른 사람들한테는 비밀이야.',echo:'작게 구운 쿠키가 제일 먼저 동났어. 네 시식평 덕분이야!',secret:'그날 카드에 점수 적을 칸 작았지? 다음엔 크게 그릴게.'},
+  train:{whisper:'우리 집 방향만 보고 탔는데 그것마저 틀렸네. 네 폰에 버스 몇 번 뜨는지 봐 줄래?',pair:'지도 펴고 돌아갈 길을 찾는다.',pairReply:'심야 버스 아직 있네! 내가 정류장 찾을게. 넌 막차 시간 봐 줘.',quietReply:'응, 단톡에는 무사히 도착했다고만 하자.',echo:'오늘은 제대로 탔어. 네가 알려 준 심야 버스도 즐겨찾기 해 놨어.',secret:'그날 반대편 타고도 집에 간 거, 우리 길 찾는 실력 좀 늘었지?'},
+  blackout:{whisper:'불빛을 조금만 왼쪽으로! 케이크 미끄러지는 거 봤어? 딱 우리 둘만 본 거지?',pair:'접시를 같이 잡고 테이블에 놓는다.',pairReply:'살았다! 우리 오늘 케이크 구조대야. 딸기도 하나 안 떨어졌어.',quietReply:'좋아. 누가 물으면 원래 기울어진 케이크였다고 하자.',echo:'다음 생일에도 케이크 구조대 부탁한대. 이번엔 처음부터 접시 들고 있자.',secret:'사진 확대해 봤는데 아무도 케이크 기운 거 모르겠더라!'}
+};
+function friendlyIncident(id){return !!game.contacts[id]?.friendsOnly || closeKin(game.player,id);}
 function incidentScene(e){
   const s=incidents[e.code];
   if(!e.route)return {title:s.title,setup:s.setup,message:s.opening,choices:[
     {label:s.private},{label:s.crowd}]};
+  if(e.route==='pair' && friendlyIncident(e.id)){
+    const friend=friendlyIncidents[e.code];
+    return {title:s.title,speaker:e.id,message:friend.whisper,choices:[
+      snapChoice(friend.pair,friend.pairReply,'friend'),
+      snapChoice('오늘 얘긴 우리끼리 간직하자.',friend.quietReply,'memory')]};
+  }
   if(e.route==='pair')return {title:s.title,speaker:e.id,message:s.whisper,choices:[
     snapChoice(s.pair,s.pairReply,'dinnerPromise'),
     snapChoice('오늘 얘긴 우리끼리 간직하자.',s.quietReply,'memory')]};
@@ -71,16 +85,22 @@ function handleIncident(e,index){
   const s=incidents[e.code],c=meet(e.id),group=e.route==='group';
   if(index===0){
     if(group){bond(e.id,e.other);proposePlan('groupMeal',[e.id,e.other]);}
-    else {c.affection++;setPromise(c,'dinnerDate');}
+    else if(friendlyIncident(e.id)){
+      c.trust=(c.trust || 0)+1;
+      if(c.role==='지인')c.role='친구';
+    }else {c.affection++;setPromise(c,'dinnerDate');}
   }
   const participants=group?[e.other]:[];
   const souvenir=group?(index===0?s.groupMemory:s.title+' · 단체 사진'):s.keepsake;
   const memory=group && index===1?action.line:kinPerson(group?e.other:e.id).name+'의 대답 “'+action.line+'”';
   (game.keepsakes ||= []).push({id:e.id,title:souvenir,year:game.year,memory,others:participants});
   remember(e.id,s.title,memory,'incident',participants);
-  addEcho(e.id,'incident',group?(index===0?s.groupEcho:s.photoEcho):index===0?s.echo:s.secret,souvenir,participants);
+  game.log.at(-1).label=action.label;
+  const afterword=!group && friendlyIncident(e.id)?friendlyIncidents[e.code]:s;
+  addEcho(e.id,'incident',group?(index===0?s.groupEcho:s.photoEcho):index===0?afterword.echo:afterword.secret,souvenir,participants);
+  game.echoes.at(-1).romantic=!group && !friendlyIncident(e.id);
   c.last=memory;e.result={label:action.label,line:action.line,spoken:!!action.spoken,speaker:group?e.other:e.id};
-  navigate();
+  navigate(e);
 }
 function seasonalEncounter(){
   if(game.ended || game.arrivalTick===tick())return;
@@ -88,6 +108,7 @@ function seasonalEncounter(){
   const queue=game.queue.filter(e=>!e.read);
   let event=queue.find(e=>e.protected || e.type==='departure');
   if(!event && (upcoming().length || Object.values(game.contacts).some(c=>c.promise && c.deadline<=tick())))return;
+  event ||= queue.find(e=>e.type==='photoPromise');
   if(!event && !game.finale){
     const m=pendingReunions().find(item=>(item.kind==='date' && item.choice===0) || tick()-item.when>=4);
     if(m){

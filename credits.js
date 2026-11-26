@@ -25,6 +25,34 @@ function creditMemories(){
   }
   return entries.filter(e=>highlights.has(e) || e.thread);
 }
+function communityCredits(cast){
+  const news=(game.townNews || []).filter(n=>n.people?.length>=2 && !n.people.some(isCut));
+  if(!news.length)return [];
+  const result=[],used=new Set();
+  const descendants=[...cast].filter(([,role])=>role==='자녀' || role==='후손').map(([id])=>id);
+  function add(ids,label){
+    for(const id of ids){
+      const events=news.filter(n=>n.people.includes(id));
+      const last=events.findLast(n=>!used.has(n));if(!last)continue;
+      const first=events.find(n=>!used.has(n) && n.when<last.when);
+      const selected=first?[first,last]:[last];
+      selected.forEach(n=>used.add(n));
+      result.push({title:label+' · '+kinPerson(id).name,events:selected});
+      return;
+    }
+  }
+  add(game.watching || [],'소식을 챙긴 사람');
+  add(descendants,'우리 집의 다음 세대');
+  if(!result.length){
+    const closest=Object.entries(game.club?.guests || {}).sort((a,b)=>b[1]-a[1]).map(([id])=>id);
+    add([...closest,...news[0].people],'동네에서 이어진 인연');
+  }
+  return result;
+}
+function townCreditLine(n){
+  const names=n.people.map(id=>kinPerson(id).name);
+  return names.join(' · ')+' — '+n.text;
+}
 function creditPortrait(parent,id,role){
   const person=kinPerson(id),figure=node('figure','',parent,'credit-face');
   const img=node('img','',figure);img.src=person.image;img.alt='';img.width=60;img.height=60;
@@ -32,7 +60,7 @@ function creditPortrait(parent,id,role){
   node('strong',person.name,caption);node('small',role,caption);
 }
 function showCredits(replay=false){
-  const cast=creditCast(),title=ending(game).title;
+  const cast=creditCast(),end=ending(game),title=end.title,community=communityCredits(cast);
   actors.replaceChildren();dock.replaceChildren();
   el('stage-time').textContent=clockLabel()+' · 엔딩';
   const frame=node('section','',actors,'credits-frame');
@@ -41,6 +69,7 @@ function showCredits(replay=false){
     frame.replaceChildren();dock.replaceChildren();frame.className='credits-frame credits-photo';
     node('small',clockLabel()+' · 마지막 사진',frame,'credit-year');
     node('h1',title,frame);
+    for(const t of end.threads)node('p',t.line,frame);
     const group=node('div','',frame,'credit-group');
     for(const [id,role] of cast)creditPortrait(group,id,role);
     dockButton(tick()===119?'30년의 가족 앨범':'우리 가족 앨범',openAlbum);
@@ -62,6 +91,15 @@ function showCredits(replay=false){
     node('p',entry.memory,card);
     const withWhom=[...new Set([entry.id,...(entry.others || [])])].filter(id=>id!==game.player && !isCut(id));
     if(withWhom.length)node('small',withWhom.map(id=>kinPerson(id).name).join(' · '),card);
+  }
+  for(const thread of community){
+    const card=node('article','',reel,'credit-memory');
+    node('h2',thread.title,card);
+    for(const n of thread.events){node('small',seasonDate(n.when),card,'credit-year');node('p',townCreditLine(n),card);}
+  }
+  for(const t of end.threads){
+    const card=node('article','',reel,'credit-memory');
+    node('h2',t.title,card);node('p',t.line,card);
   }
   node('h2',cast.size>1?'끝까지 함께한 사람들':'마지막 장면의 나',reel);
   const group=node('div','',reel,'credit-group');

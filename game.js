@@ -40,6 +40,7 @@ function startRun(player, sender, story, goal) {
     season:0, queue:[], contacts:{}, children:[], marriages:[], log:[], done:false, extra:false, ended:false};
   initLife();
   if(households.includes(goal))game.club.goal=goal;
+  if(!sender && !story){game.event=firstSnapshot();navigate();return;}
   const id = sender && !isCut(sender) ? sender : pick(unused());
   if(!id){game.event={type:'quiet',id:player};navigate();return;}
   meet(id);
@@ -164,7 +165,7 @@ function eligible(c,kind){
     if(blocked && (!marriageOnly || kind==='marry')) return false;
   }
   if(kind==='marry') return c.role==='연인' && !spouse() && !townSpouse(Object.keys(game.contacts).find(id=>game.contacts[id]===c));
-  if(kind==='date')return !partner(c) && !townSpouse(Object.keys(game.contacts).find(id=>game.contacts[id]===c));
+  if(kind==='date')return !c.friendsOnly && !partner(c) && !townSpouse(Object.keys(game.contacts).find(id=>game.contacts[id]===c));
   return true;
 }
 const offers={
@@ -173,6 +174,8 @@ const offers={
   marry:['앞으로도 네 곁에서 살고 싶어. 나랑 결혼할래?','응, 우리 결혼하자.','우리는 앞으로의 삶을 함께하기로 했다.']
 };
 function scene(e){
+  if(snapshotEvents.includes(e.type))return snapshotScene(e);
+  if(e.type==='approach')return approachScene(e);
   if(['calendarVisit','childVisit','weddingLetter'].includes(e.type))return personalScene(e);
   if(e.type==='outingDay' || e.type==='echo') return lifeScene(e);
   const c=game.contacts[e.id];
@@ -204,8 +207,11 @@ function scene(e){
   }
   if(e.type==='proposal'){
     const [message,label,line]=offers[e.kind];
-    return {title:'먼저 도착한 마음',setup:c.last || '내 이름을 부르는 메시지가 왔다.',message:e.returnCall?'기다렸지? 내 일정 정리됐어. 이번엔 같이 걸을래?':(c.voice || '')+message,
-      choices:[opt(label,line,e.kind==='outing'?'promise':e.kind),opt('조금 더 만나 보고 싶어.','서두르지 않고 다시 만나기로 했다.','later'),opt('솔직히 말할게. 나는 원하지 않아.','상대는 내 대답을 받아들였다.','no')]};
+    let invitation=(c.voice || '')+message;
+    if(e.kind==='date')invitation=confessionLines[members[e.id].name] || invitation;
+    if(e.returnCall)invitation='기다렸지? 내 일정 정리됐어. 이번엔 같이 걸을래?';
+    return {title:'먼저 도착한 마음',setup:c.last || '내 이름을 부르는 메시지가 왔다.',message:invitation,
+      choices:[opt(e.kind==='date'?'나도 좋아. 우리 만나자.':label,line,e.kind==='outing'?'promise':e.kind),opt('조금 더 만나 보고 싶어.','서두르지 않고 다시 만나기로 했다.','later'),opt('솔직히 말할게. 나는 원하지 않아.','상대는 내 대답을 받아들였다.','no')]};
   }
   if(e.type==='warning' || e.type==='departure'){
     const leave=e.type==='departure';
@@ -278,7 +284,7 @@ function advance(){
   for(const invitation of game.queue || []){
     const contact=game.contacts[invitation.id];
     if(contact && invitation.until<=tick() && ['warning','proposal','reconnect'].includes(invitation.type)){
-      contact.quietUntil=tick()+4;
+      contact.quietUntil=tick()+(invitation.type==='proposal' && !invitation.read?1:4);
       if(invitation.type==='warning'){
         contact.warning=null;contact.unansweredWarning=true;
         contact.trust=(contact.trust || 0)-1;
@@ -330,6 +336,7 @@ function prepareSeason(){
   if(game.prepared===tick()) return;
   game.queue=game.queue.filter(e=>(e.protected || e.until>=tick()) && (e.type!=='proposal' || eligible(game.contacts[e.id],e.kind)));
   if(game.finale) game.queue=game.queue.filter(e=>e.protected);
+  seasonSnapshot();
   const used=new Set(game.queue.map(e=>e.id));
   function push(e,life){
     if(used.has(e.id) || (!e.protected && quietContact(e.id))) return false;
@@ -361,6 +368,13 @@ function prepareSeason(){
       c.lastReach=tick(); c.followMarriage=false;
     }
   }
+  if(game.snapshot && tick()>0 && tick()%4===2){
+    const played=new Set(game.playedOpenings || []);
+    const remaining=stories.filter(s=>!played.has(s.id));
+    const story=remaining.length?pick(remaining):null;
+    const contacts=entries.filter(([id,c])=>!used.has(id) && !quietContact(id) && !c.promise && !c.warning);
+    if(story && contacts.length)push({type:'intro',id:pick(contacts)[0],story:story.id,invited:true},1);
+  }
   const annual=game.pending || chooseAnnual(); delete game.pending;
   if(!['solo','quiet','sports'].includes(annual.type) && annual.id!==game.player) meet(annual.id);
   const newcomer=game.contacts[annual.id];
@@ -371,12 +385,13 @@ function prepareSeason(){
     const chapter=selectChapter(game);
     if(chapter) push(chapter,0);
   }
+  inviteAdmirer(used,push);
   const candidates=Object.entries(game.contacts).filter(([id,c])=>!used.has(id) && !c.promise && eligible(c,'outing'));
   if(candidates.length){
     const [id,c]=pick(candidates.flatMap(pair=>Array(3-temperament(pair[0])).fill(pair)));
     let kind='outing';
     if(eligible(c,'marry') && c.affection>=2) kind='marry';
-    else if(eligible(c,'date') && c.affection>=1) kind='date';
+    else if(eligible(c,'date') && (c.affection>=1 || c.approached)) kind='date';
     push({type:'proposal',id,kind},1);
   }
   game.prepared=tick(); persist();
@@ -423,6 +438,17 @@ function answer(index) {
   if (!e || e.result) return;
   const {title,choices}=scene(e), c=game.contacts[e.id], action=choices[index];
   if (!action) return;
+  if(snapshotEvents.includes(e.type))snapshotAnswer(e,index);
+  if(e.type==='approach' && !e.step){
+    if(index===0){e.step=1;navigate();return;}
+    if(index===1){
+      const guests=Object.keys(game.contacts).filter(id=>id!==e.id && !quietContact(id) && !isCut(id));
+      const guest=guests.length?pick(guests):pick(unused());
+      if(guest){meet(guest);proposePlan('groupMeal',[e.id,guest]);}
+    }
+    if(index===2)c.friendsOnly=true;
+  }
+  if(e.type==='proposal' && e.kind==='date' && action.effect==='no')c.friendsOnly=true;
   if(c) c.pace ??= temperament(e.id);
   if(action.offer){
     const outcome=decide(c,action.offer);
@@ -492,6 +518,7 @@ function answer(index) {
       game.children.push({id:e.kid,parents:e.parents,year:game.year,kind:e.kind});
       memory=members[e.kid].name+' · '+memory; break;
   }
+  if(e.invited)(game.playedOpenings ||= []).push(e.story);
   if(e.type==='intro' && action.effect==='promise' && !(e.story==='dinner' && index===2)) c.due=game.year;
   const souvenir={ticketStub:'그날의 공연표',ticketReschedule:'그날의 공연표',inviteWitness:'그날의 공연표',candles:'두 케이크의 초',partyPhoto:'기념일 단체사진',medal:'종이 메달',sportsPhoto:'운동회 사진'}[action.effect];
   if (souvenir) {
@@ -519,6 +546,11 @@ function answer(index) {
   const spoken = !!action.spoken || e.type==='intro' || (action.offer && ['later','no'].includes(action.effect));
   e.result={label:action.label,line:action.line,memory,spoken};
   game.log.push({year:game.year,season:game.season || 0,code:e.code,id:e.id,title,memory,effect:action.effect, label:action.label});
+  if(snapshotEvents.includes(e.type)){
+    const s=game.snapshot;
+    const groupPhoto=e.type==='snapshot' || e.type==='photoWinter' || (e.type==='photoReunion' && s.reply===1);
+    if(groupPhoto)game.log.at(-1).others=[e.id===s.joker?s.sender:s.joker];
+  }
   game.done=true;
   if(action.offer && action.effect==='no' && !game.echoes.some(x=>x.id===e.id && x.kind==='retry')) addEcho(e.id,'retry','지난번 대답이 마음에 걸렸어. 이번엔 친구들이랑 같이 국수 먹을래?', '분식집 단체석');
   navigate();
@@ -566,6 +598,9 @@ function fillAlbum() {
 
   node('p',clockLabel(),box);
   node('h1',game.ended?(tick()===119?'우리 가족의 30년':'우리 가족의 이야기'):'내 가계도',box,'selection-title');
+  if(game.snapshot?.frame!=null && ![game.snapshot.sender,game.snapshot.joker].some(isCut)){
+    const photo=details(box,'첫 번개 대표 사진');photoPrint(photo,game.snapshot.frame);
+  }
   if(canEndEarly())control(box,'지금 엔딩 보기',earlyEndingMenu);
   const board=node('div','',box,'kin-board');
   drawKin(board,game.player);

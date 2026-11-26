@@ -64,7 +64,7 @@ function stageEntries(){
   }
   return visible;
 }
-function isLetter(e){return ['proposal','warning','departure','reconnect'].includes(e.type);}
+function isLetter(e){return e.invited || ['proposal','warning','departure','reconnect','photoNote','photoReunion','photoWinter','approach'].includes(e.type);}
 function focusOn(entry){
   if(entry?.kind==='event' && isLetter(entry.e)){entry.e.read=true;persist();}
   preview=entry;courtesy=null;browsingTopics=false;page=0;lastBeat=null;renderStage();
@@ -202,7 +202,15 @@ function renderStage(){
     dockButton('주변 보기',()=>focusOn(null),true);return;
   }
   const story=scene(event);
-  const beat=event.result || event.type+':'+event.id;
+  if(snapshotEvents.includes(event.type)){
+    actors.replaceChildren();
+    const wall=node('div','',actors,'snap-wall');
+    if(event.type==='snapshot' && !event.result){
+      photoPrint(wall,0);photoPrint(wall,1);
+    }else photoPrint(wall,game.snapshot.frame,event.type==='photoNote' || (event.type==='photoReunion' && game.snapshot.reply===0));
+    node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':members[event.id].name+(event.type==='photoWinter'?' · 사진첩':' · 개인톡'),wall,'snap-caption');
+  }
+  const beat=event.result || event.type+':'+event.id+':'+(event.step || 0);
   if(lastBeat!==beat){page=0;lastBeat=beat;}
   // Preview opens on the character's words. Opening narration is read once in committed scenes.
   const speech=event.result
@@ -235,12 +243,18 @@ function renderStage(){
     line.setAttribute('aria-label',line.textContent+' · 다음 대사');line.onclick=nextLine;
     line.onkeydown=ev=>{if(['Enter',' '].includes(ev.key)){ev.preventDefault();nextLine();}};
   } else if(event.result){
-    dockButton('동네로 돌아가기 ▸',()=>{
-      const reveal=['marry','arrival'].includes(game.log.at(-1)?.effect);
-      game.event=null;preview=null;page=0;lastBeat=null;
-      navigate();
-      if(reveal || game.ended) openAlbum();
+    const leave=()=>{game.event=null;preview=null;page=0;lastBeat=null;};
+    const letter=game.queue?.find(e=>e.type==='photoNote' && !e.read);
+    const reveal=['marry','arrival'].includes(game.log.at(-1)?.effect);
+    if(letter)dockButton(members[letter.id].name+'의 비공개 사진 열기',()=>{
+      leave();openSeasonEvent(letter);
     });
+    if(reveal)dockButton('달라진 가계도 보기',()=>{leave();navigate();openAlbum();});
+    dockButton(tick()===119?'마지막 겨울 마치기':seasons[(game.season+1)%4]+'으로 ▸',()=>{
+      // Keep the result available if the player cancels the missed-appointment prompt.
+      passSeason(false,leave);
+    },!!letter || reveal);
+    dockButton(seasons[game.season]+'에 더 머물기',()=>{leave();navigate();},true);
   } else {
     story.choices.forEach((choice,i)=>dockButton(choice.label,()=>{
       if(preview){acceptEntry(preview);event.stagePlace=venue;}

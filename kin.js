@@ -261,14 +261,20 @@ function drawKin(container,initial,main=false,notice=null){
 let kinNotice=null;
 function drawTown(board,entries){
   if(entries.length){
+    const feature=entries.find(x=>x.e.protected) || entries.find(x=>['photoNote','photoReunion','photoWinter','approach'].includes(x.e.type) && !x.e.read) || entries.find(x=>isLetter(x.e) && !x.e.read);
+    if(feature){
+      const card=kinCard(board,feature.e.id,scene(feature.e).message,()=>focusOn(feature));
+      card.classList.add('featured-letter');
+    }
     const invitations=node('div','',board,'town-invitations');
     for(const id of new Set(entries.map(x=>x.e.id))){
-      const topics=entries.filter(x=>x.e.id===id);
+      const topics=entries.filter(x=>x.e.id===id && x!==feature);
+      if(!topics.length)continue;
       const letters=topics.filter(item=>item.kind==='event' && isLetter(item.e) && !item.e.read);
       const appointment=topics.find(item=>item.kind==='promise');
       const entry=letters[0] || appointment || topics[0];
       const activity=appointment?(appointment.c.plan==='concert'?'공연장 가기':(planNames[appointment.c.plan] || '약속')+' 만나러 가기'):'';
-      const hint=letters.length?['새 연락 '+letters.length,activity].filter(Boolean).join(' · '):activity || entry.hint || '말 걸기';
+      const hint=letters.length?scene(entry.e).message:activity || entry.hint || '말 걸기';
       kinCard(invitations,id,hint,()=>{
         if(letters.length){venue=eventPlace(entry.e);focusOn(entry);return;}
         preview=entry;courtesy=null;browsingTopics=true;page=0;lastBeat=null;renderStage();
@@ -286,7 +292,9 @@ function drawTown(board,entries){
     const sorted=[...recent].reverse().sort((a,b)=>Number(!!a.read)-Number(!!b.read) || b.when-a.when || Number(important(b))-Number(important(a)));
     const n=sorted[0];
     const prefix=item=>[important(item)?'★':'',item.read?'읽음':'새 소식',seasonDate(item.when)].filter(Boolean).join(' · ');
-    const announcement=node('button',prefix(n)+' · '+n.people.slice(0,2).map(id=>kinPerson(id).name).join(' · ')+' ─ '+n.title,board,'town-news');
+    const clue=n.title==='두 사람의 첫날' && !n.read && n.when===tick();
+    const headline=clue?'가방에 같은 키링이 달렸다':n.title;
+    const announcement=node('button',prefix(n)+' · '+n.people.slice(0,2).map(id=>kinPerson(id).name).join(' · ')+' ─ '+headline,board,'town-news');
     announcement.onclick=()=>{
       menu('동네 소식');
       for(const item of sorted){

@@ -312,10 +312,10 @@ function messages(){
 }
 el('circle').onclick=messages;
 function needsReply(){
-  return game.weddings.length || upcoming().length || game.queue.some(e=>e.protected || ['proposal','warning','departure','sports'].includes(e.type)) ||
+  return game.weddings.length || upcoming().length || game.queue.some(e=>e.protected || (isLetter(e) || e.type==='sports')) ||
     game.echoes.some(e=>e.due<=tick()) || Object.values(game.contacts).some(c=>c.promise && c.deadline<=tick());
 }
-function passSeason(skip=false){
+function passSeason(skip=false,onMove){
   const closing=game.year===30 && game.season===3;
   if(closing && (game.obligations?.length || game.queue.some(e=>e.protected))){
     menu('겨울에 남은 가족 소식');const event=game.queue.find(e=>e.protected) || game.obligations[0];
@@ -323,6 +323,7 @@ function passSeason(skip=false){
   }
   const promises=Object.values(game.contacts).filter(c=>c.promise && c.deadline<=tick());
   function move(){
+    if(onMove)onMove();
     if(lifeMenu.open)closeMenu();preview=null;page=0;lastBeat=null;
     do{
       advance();if(game.ended)break;

@@ -110,3 +110,14 @@
 #kin-dialog::backdrop{background:#25162799}
 #kin-dialog form{text-align:right}#kin-dialog form button{cursor:pointer;padding:8px;border-radius:10px;color:white;background:#462c44}
 #kin-title{margin:8px;font-size:20px}.kin-detail-photo{height:72px;width:72px;object-fit:cover;border-radius:50%}
+.snap-wall{position:absolute;inset:2% 4% 40%;display:flex;align-items:center;justify-content:center;gap:5px;padding-bottom:18px}
+.snap-print{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:1;max-width:270px;min-width:0;aspect-ratio:1.55;background:center/cover url(materials/stage-square.jpg);border:5px solid #fff6dd;border-bottom-width:14px;box-shadow:1px 4px 8px #30172f66;transform:rotate(-2deg)}
+.snap-print img{width:38%;aspect-ratio:.77;object-fit:cover;border:2px solid #fff0ce;border-radius:45% 45% 16% 16%;margin:0 -3%;transform:translateY(9%) rotate(-4deg)}
+.snap-0 img:last-child{filter:blur(1.6px);transform:translate(5%,20%) rotate(15deg)}
+.snap-1{transform:rotate(3deg)}.snap-1 img:not(:last-child){filter:blur(2px);opacity:.75}.snap-1 img:last-child{position:absolute;right:12%;width:61%;transform:rotate(7deg) translateY(15%)}
+.snap-private img{width:49%}.snap-caption{position:absolute;bottom:0;background:#fff6dd;color:#533341;border-radius:9px;padding:3px 10px;font-weight:bold}
+.town-board>.featured-letter{grid-column:1/-1;display:grid;grid-template-columns:52px 1fr;text-align:left;align-items:center;background:#fff1ce;padding:8px 12px}
+.featured-letter img{grid-row:span 2}.town-board>.featured-letter small{white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+.credit-reel>.snap-print,#family-content .snap-print{margin:12px auto;width:85%}
+
+.town-board>.featured-letter{width:100%;margin-bottom:5px}.town-board>.featured-letter img{width:46px;height:46px}.town-invitations:empty{display:none}

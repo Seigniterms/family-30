@@ -64,7 +64,7 @@ function stageEntries(){
   }
   return visible;
 }
-function isLetter(e){return e.invited || ['proposal','warning','departure','reconnect','photoNote','photoReunion','photoWinter','photoPromise','approach'].includes(e.type);}
+function isLetter(e){return e.invited || ['proposal','warning','departure','reconnect','photoNote','photoReunion','photoWinter','photoPromise','approach','secret','outreach'].includes(e.type);}
 function focusOn(entry){
   if(entry?.kind==='event' && isLetter(entry.e)){entry.e.read=true;persist();}
   preview=entry;courtesy=null;browsingTopics=false;page=0;lastBeat=null;renderStage();
@@ -157,10 +157,19 @@ function eventPlace(e){
   if(['family','arrival','familyNews','solo','anniversary','sportsLater'].includes(e?.type) || /^(family|home)-/.test(e?.code || '')) return 'home';
   return 'square';
 }
+const secretArt={
+  tickets:'전시회 입장권 두 장',
+  cups:'디저트 사진에서 잘려 나간 맞은편 찻잔',
+  cinema:'극장 앞에서 손을 잡고 걷는 두 사람',
+  reflection:'카페 유리에 비친 두 사람과 딸기 케이크',
+  gallery:'전시 포스터를 덮은 유리에 작게 비친 두 방문객'
+};
 let displayedRun;
 function renderStage(){
   el('stage-hud-tools').querySelector('.stage-back')?.remove();
   if(displayedRun!==game){displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
+  if(game.event && !validStoryEvent(game.event)){game.event=null;preview=null;persist();}
+  if(preview && !validStoryEvent(preview.e))preview=null;
   if(!game.event && !game.ended) prepareSeason();
   el('reset-run').hidden=game.ended;
   el('circle').hidden=!!game.event || game.ended;
@@ -174,7 +183,8 @@ function renderStage(){
   dock.replaceChildren(); actors.querySelector('.actor-dialogue')?.remove();
   actors.classList.toggle('focused',!!event);
   actors.classList.remove('speaking');
-  actors.dataset.reaction=event?.result ? (['no','later','split'].includes(game.log.at(-1)?.effect)?'hesitate':'reply'):'';
+  const resultEntry=event?.result && (game.log[event.result.logIndex] || game.log.at(-1));
+  actors.dataset.reaction=event?.result ? (['no','later','split'].includes(resultEntry?.effect)?'hesitate':'reply'):'';
   actors.classList.toggle('neighbourhood',!event && !game.ended);
   actors.querySelector('.town-board')?.remove();
   chat.classList.toggle('in-credits',game.ended);
@@ -183,6 +193,8 @@ function renderStage(){
   }
   const story=event?scene(event):null;
   const speaker=event && sceneSpeaker(event,story);
+  if(event?.type==='secret' || event?.type==='outreach')
+    el('stage-time').textContent=clockLabel()+' · '+story.title;
   if(!event){
     actors.replaceChildren();
     const board=node('div','',actors,'town-board');
@@ -253,16 +265,29 @@ function renderStage(){
     }
     node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':(event.type==='photoWinter'?'첫 번개 사진첩':event.type==='photoReunion'?'여름 번개':members[event.id].name+' · 개인톡'),wall,'snap-caption');
   }
+  const clue=story.art || event.art;
+  if(event.type==='secret' && Object.hasOwn(secretArt,clue)){
+    actors.replaceChildren();
+    const frame=node('div','',actors,'secret-still');
+    const img=node('img','',frame);
+    img.src='materials/secret-'+clue+'.webp';
+    img.alt=secretArt[clue];
+  }
   const beat=event.result || event.type+':'+event.id+':'+(event.route || event.step || 0);
   if(lastBeat!==beat){page=0;lastBeat=beat;}
   const lines=sceneBeats(story,event);
   const current=lines[page] || lines[0];
   const nextLine=()=>{page++;renderStage();};
   actors.classList.toggle('speaking',current.voice);
+  const still=actors.querySelector('.secret-still');
+  if(still && current.voice && speaker){
+    const portrait=node('img','',still,'still-speaker');
+    portrait.src=kinPerson(speaker).image;portrait.alt=kinPerson(speaker).name;
+  }
   if(event.result)node('small','나 · '+event.result.label,dock,'my-answer');
   const line=stageLine(current.text,current.voice?speaker:null);
   if(event.result){
-    const effect=game.log.at(-1)?.effect;
+    const effect=resultEntry?.effect;
     const c=game.contacts[event.id];
     let change='';
     const chosen=event.planChoice;
@@ -272,7 +297,8 @@ function renderStage(){
       if(actual?.state==='proposal')dockButton('날짜 고르기',()=>bookMenu(actual));
     }else if(c?.promise && ['promise','bookConcert','dinnerPromise','repair'].includes(effect))
       change=(c.plan==='concert'?'공연표':'약속')+' · '+members[event.id].name+' · '+seasons[c.deadline%4];
-    if(['date','marry','split'].includes(effect)) change=members[event.id].name+' · '+c.role;
+    if(['date','marry','split'].includes(effect) && game.contacts[resultEntry.id])
+      change=members[resultEntry.id].name+' · '+game.contacts[resultEntry.id].role;
     if(change) node('small',change,dock,'stage-change');
   }
   if(page<lines.length-1){
@@ -287,10 +313,12 @@ function renderStage(){
     }
     const leave=()=>{game.event=null;preview=null;page=0;lastBeat=null;};
     const letter=game.queue?.find(e=>e.type==='photoNote' && !e.read);
-    const reveal=['marry','arrival'].includes(game.log.at(-1)?.effect);
+    const reveal=['marry','arrival'].includes(resultEntry?.effect);
     if(letter)dockButton(members[letter.id].name+'의 비공개 사진 열기',()=>{
       leave();openSeasonEvent(letter);
     });
+    const followUp=resultOutreach(event);
+    if(followUp)dockButton(followUp.label,followUp.open,true);
     if(reveal)dockButton('달라진 가계도 보기',()=>{leave();navigate();openAlbum();});
     dockButton(tick()===119?'마지막 겨울 마치기':nextSeasonLabel()+' ▸',()=>{
       // Keep the result available if the player cancels the missed-appointment prompt.

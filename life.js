@@ -81,7 +81,10 @@ function cutPerson(id,line){
   for(const key of ['queue','obligations','echoes','sightings','bonds'])
     game[key]=(game[key] || []).filter(e=>!includes(e));
   for(const key of ['pending','familyDate'])if(includes(game[key]))delete game[key];
-  if(game.weekend)game.weekend.people=game.weekend.people.filter(p=>p!==id);
+  if(game.weekend){
+    game.weekend.people=game.weekend.people.filter(p=>p!==id);
+    if(game.weekend.directInvite?.id===id)delete game.weekend.directInvite;
+  }
   for(const c of Object.values(game.contacts)){
     if(c.last?.includes(members[id].name))c.last='';
     if(c.note?.text?.includes(members[id].name))delete c.note;
@@ -242,26 +245,63 @@ function weekend(){
 }
 function weekendRoster(w,i){
   const available=new Set([...Object.keys(game.contacts),...unused()]);
-  return w.rosters[i].filter(id=>available.has(id) && !isCut(id));
+  const direct=w.directInvite;
+  const seats=w.rosters[i].filter(id=>!direct || direct.i===i || id!==direct.id);
+  if(direct?.i===i && !seats.includes(direct.id))seats.push(direct.id);
+  return seats.filter(id=>available.has(id) && !isCut(id));
 }
-function reserve(i,guests,confirmed=false){
+function inviteStatus(id,w,i){
+  const c=game.contacts[id];
+  if(quietContact(id))return '혼자 쉬는 중';
+  if(c?.contactAfter>tick() || c?.changes>=2 && c.callAfter>tick())return '이번 번개는 사양했어요';
+  if(['new','final'].includes(c?.warning))return '먼저 풀 이야기가 있어요';
+  if(c?.invitedAt===tick() && !(w.directAnswer?.id===id && w.directAnswer.i===i))return '이번 계절에는 이미 답했어요';
+  return '';
+}
+function reserve(i,guests,confirmed=false,ready=false){
   const w=weekend();if(w.taken || game.event || game.ended)return;
   guests=[...new Set(guests)].filter(id=>weekendRoster(w,i).includes(id));
-  const declined=guests.filter(id=>quietContact(id) || game.contacts[id]?.warning || (game.contacts[id]?.changes>=2 && game.contacts[id]?.callAfter>tick()));
+  const answer=w.directAnswer,requested=guests.length===1?'pair':'group';
+  const accepted=id=>answer?.id===id && answer.i===i && answer.mode===requested;
+  const declined=guests.filter(id=>inviteStatus(id,w,i) || (game.contacts[id]?.invitedAt===tick() && !accepted(id)));
   guests=guests.filter(id=>!declined.includes(id));
   if(!guests.length){
     menu('함께 갈 멤버가 없어요');node('p','다른 멤버를 한 명 이상 초대해 주세요.',lifeBody);menuButton('다시 고르기',hosts);return;
   }
-  if(guests.length===1 && !confirmed){
+  if(guests.length===1){
     const id=guests[0];
-    if(game.contacts[id]?.friendsOnly || closeKin(game.player,id)){
-      menu('여럿이 만나는 번개');node('p',members[id].name+'와는 다른 멤버도 함께 초대해요.',lifeBody);
+    if(outreachBoundary(id) || game.contacts[id]?.groupUntil>=tick()){
+      menu('여럿이 만나는 번개');node('p',withParticle(members[id].name,'과','와')+'는 다른 멤버도 함께 초대해요.',lifeBody);
       menuButton('멤버 더 고르기',()=>guestMenu(i,guests));return;
     }
-    menu('둘만 가는 데벙이에요');
-    if(declined.length)node('p',declined.map(id=>members[id].name).join(' · ')+' 멤버는 이번에 쉬기로 했어요.',lifeBody);
-    node('p',members[id].name+'와 단둘이 만나는 데이트벙개예요. 둘이서 갈까요?',lifeBody);
-    menuButton('좋아, 데벙으로 출발',()=>reserve(i,guests,true));menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
+    if(!confirmed){
+      menu(otherLove(id)?'둘이 만나자고 물어볼까?':'둘만 가는 데벙이에요');
+      if(declined.length)node('p',declined.map(id=>members[id].name).join(' · ')+' 멤버는 이번에 쉬기로 했어요.',lifeBody);
+      node('p',otherLove(id)?'이미 만나는 사람이 있어요. 상대에게 먼저 마음을 물어볼까요?':withParticle(members[id].name,'과','와')+' 단둘이 만나는 데이트벙개예요. 둘이서 갈까요?',lifeBody);
+      menuButton(otherLove(id)?'둘이 만나자고 제안':'좋아, 데벙으로 출발',()=>reserve(i,guests,true));menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
+    }
+  }
+  if(guests.length===1 && otherLove(guests[0])){
+    const id=guests[0];meet(id);
+    if(canSecretInvite(id)){
+      w.taken=true;game.contacts[id].invitedAt=tick();closeMenu();
+      if(startSecretInvite(id))return;
+      w.taken=false;delete game.contacts[id].invitedAt;persist();
+    }
+    menu('둘만 만날 수 없는 날');node('p','오늘은 친구들과 함께 만나자고 했어요.',lifeBody);
+    menuButton('다른 멤버도 부르기',()=>guestMenu(i,guests));return;
+  }
+  const direct=w.directInvite;
+  if(direct?.i===i && guests.includes(direct.id)){
+    const id=direct.id;meet(id);
+    const mode=guests.length===1?'pair':'group';
+    const agreed=accepted(id) || sendOutreach(id,w.plans[i],mode,undefined,i);
+    if(!agreed)return;
+    if(!ready){
+      menu(members[id].name+'의 답장');node('p',game.contacts[id].inviteNote,lifeBody,'contact-reply');
+      menuButton('약속 장소로 가기',()=>reserve(i,guests,true,true));
+      menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
+    }
   }
   const others=weekendRoster(w,1-i).filter(id=>!quietContact(id) && !game.contacts[id]?.warning);
   if(others.length>=2){
@@ -271,6 +311,7 @@ function reserve(i,guests,confirmed=false){
     remember(a,'내가 빠진 토요일',memory,'neighbors',[b]);addEcho(a,'neighbors',members[b].name+'랑 다녀왔어. 사진 구경할래?',rival.title+' 단체사진',[b]);
   }
   guests.forEach(meet);w.taken=true;
+  if(w.directInvite && guests.includes(w.directInvite.id))game.contacts[w.directInvite.id].invitedAt=tick();
   enterScene({type:'outingDay',activity:w.plans[i],id:guests[0],guests,declined,social:meetupSituation(guests)});
 }
 function hosts(){
@@ -292,14 +333,31 @@ function hosts(){
 }
 function guestMenu(i,selected=[]){
   const w=weekend(),key=w.plans[i],roster=weekendRoster(w,i);
-  const guests=new Set(selected.filter(id=>roster.includes(id) && !quietContact(id)));
+  const guests=new Set(selected.filter(id=>roster.includes(id) && !inviteStatus(id,w,i)));
   menu(outings[key].title);
   const status=node('p','',lifeBody,'guest-status');status.setAttribute('aria-live','polite');
   for(const id of roster){
     const label=node('label','',lifeBody,'invitee'),box=node('input','',label);
-    box.type='checkbox';box.disabled=quietContact(id);box.checked=guests.has(id);
+    const reason=inviteStatus(id,w,i);
+    box.type='checkbox';box.disabled=!!reason;box.checked=guests.has(id);
     box.onchange=()=>{if(box.checked)guests.add(id);else guests.delete(id);sync();};
-    label.append(' '+members[id].name+(box.disabled?' · 혼자 쉬는 중':favorite(id)===key?' · 기다리던 번개':''));
+    label.append(' '+members[id].name+(box.disabled?' · '+reason:favorite(id)===key?' · 기다리던 번개':''));
+  }
+  const outside=Object.keys(game.contacts).filter(id=>!w.rosters[i].includes(id) &&
+    !inviteStatus(id,w,i) && !isCut(id) && !allChildren().some(c=>c.id===id));
+  if(outside.length){
+    const field=node('label','다른 멤버 한 명 직접 초대',lifeBody);
+    const select=node('select','',field);
+    node('option','멤버 고르기',select).value='';
+    for(const id of outside)node('option',members[id].name,select).value=id;
+    select.value=w.directInvite?.i===i?w.directInvite.id:'';
+    select.onchange=()=>{
+      const prior=w.directInvite;
+      if(prior)guests.delete(prior.id);
+      if(select.value){w.directInvite={i,id:select.value};guests.add(select.value);}
+      else delete w.directInvite;
+      persist();guestMenu(i,[...guests]);
+    };
   }
   const depart=node('button','이대로 출발',lifeBody,'start-button');depart.type='button';
   depart.onclick=()=>reserve(i,[...guests]);menuButton('다른 약속 보기',hosts);
@@ -339,6 +397,7 @@ function messages(){
     const c=game.contacts[id];menu(members[id].name);
     node('p',c?.last || '익숙한 얼굴이 내 쪽을 돌아봤다.',lifeBody);
     if(c)node('p',(c.job || outings[favorite(id)].track+' 좋아하는 중')+' · '+(c.job?'요즘 하는 일':'관심사'),lifeBody);
+    if(c)menuButton('만날 약속 제안',()=>outreachMenu(id));
     if(c)menuButton('안부 묻기',()=>{
       const repeated=c.greeted===tick();c.greeted=tick();
       if(!repeated)remember(id,'단톡방 안부','서로의 하루를 물었다.','greeting');
@@ -427,7 +486,7 @@ function archiveRun(){
       events:t.events.map(n=>({date:seasonDate(n.when),line:townCreditLine(n)}))})),
     names:Object.fromEntries(familyIds().map(id=>[id,kinPerson(id).name])),
     links:familyIds().flatMap(id=>[...connections(id)].filter(([who])=>id<who).map(([who,roles])=>({id,who,roles}))),
-    scenes:game.log.filter(visibleMemory).map(({year,season,id,title,memory,others})=>({year,season,id,title,memory,others}))};
+    scenes:game.log.filter(visibleMemory).map(({year,season,id,title,memory,others,label})=>({year,season,id,title,memory,others,label}))};
   const archives=storedList('family30.albums').filter(a=>a.id!==run.id);
   try{localStorage.setItem('family30.albums',JSON.stringify([...archives,run]));game.archived=true;}
   catch{game.archived=false;}
@@ -457,6 +516,10 @@ function albumLife(parent){
       for(const edge of r.links)
         node('p',r.names[edge.id]+' → '+edge.roles.join(' · ')+' → '+r.names[edge.who],tree);
     }
-    for(const s of r.scenes)node('p',logText(s,r.names),book,'memory-card');
+    for(const s of r.scenes){
+      const card=node('div','',book,'memory-card');
+      if(s.label)node('small','내 선택 · '+s.label,card);
+      node('p',logText(s,r.names),card);
+    }
   }
 }

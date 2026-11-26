@@ -18,7 +18,7 @@ function creditCast(){
 function creditMemories(){
   const entries=game.log.filter(visibleMemory);
   const highlights=new Set([entries[0],entries.at(-1)].filter(Boolean));
-  const priority=e=>['arrival','marry','date','split','childVisit','calendarVisit','weddingLetter','outingDay'].includes(e.effect)?2:e.code?1:0;
+  const priority=e=>['arrival','marry','date','split','childVisit','calendarVisit','weddingLetter','outingDay'].includes(e.effect)?2:e.code || e.art?1:0;
   for(let year=1;year<=game.year;year+=4){
     const period=entries.filter(e=>e.year>=year && e.year<year+4);
     if(period.length)highlights.add(period.reduce((best,e)=>priority(e)>priority(best)?e:best));
@@ -88,6 +88,11 @@ function showCredits(replay=false){
     if(entry.thread)threads.set(entry.thread,card);
     node('small',entry.year+'년 차 '+seasons[entry.season || 0],card,'credit-year');
     node('h2',entry.title,card);
+    if(entry.art && Object.hasOwn(secretArt,entry.art)){
+      const image=node('img','',card,'credit-still');
+      image.src='materials/secret-'+entry.art+'.webp';image.alt=secretArt[entry.art];
+    }
+    if(entry.label && (entry.thread || entry.effect==='outreach'))node('small','내 선택 · '+entry.label,card);
     node('p',entry.memory,card);
     const withWhom=[...new Set([entry.id,...(entry.others || [])])].filter(id=>id!==game.player && !isCut(id));
     if(withWhom.length)node('small',withWhom.map(id=>kinPerson(id).name).join(' · '),card);

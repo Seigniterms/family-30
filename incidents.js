@@ -57,7 +57,11 @@ const friendlyIncidents={
   train:{whisper:'우리 집 방향만 보고 탔는데 그것마저 틀렸네. 네 폰에 버스 몇 번 뜨는지 봐 줄래?',pair:'지도 펴고 돌아갈 길을 찾는다.',pairReply:'심야 버스 아직 있네! 내가 정류장 찾을게. 넌 막차 시간 봐 줘.',quietReply:'응, 단톡에는 무사히 도착했다고만 하자.',echo:'오늘은 제대로 탔어. 네가 알려 준 심야 버스도 즐겨찾기 해 놨어.',secret:'그날 반대편 타고도 집에 간 거, 우리 길 찾는 실력 좀 늘었지?'},
   blackout:{whisper:'불빛을 조금만 왼쪽으로! 케이크 미끄러지는 거 봤어? 딱 우리 둘만 본 거지?',pair:'접시를 같이 잡고 테이블에 놓는다.',pairReply:'살았다! 우리 오늘 케이크 구조대야. 딸기도 하나 안 떨어졌어.',quietReply:'좋아. 누가 물으면 원래 기울어진 케이크였다고 하자.',echo:'다음 생일에도 케이크 구조대 부탁한대. 이번엔 처음부터 접시 들고 있자.',secret:'사진 확대해 봤는데 아무도 케이크 기운 거 모르겠더라!'}
 };
-function friendlyIncident(id){return !!game.contacts[id]?.friendsOnly || closeKin(game.player,id);}
+function friendlyIncident(id){
+  const c=game.contacts[id];
+  return c?.friendsOnly || closeKin(game.player,id) || (!partner(c || {}) && outsideRelationship(id)) ||
+    allChildren().some(child=>child.id===id && childAge(child)<18);
+}
 function incidentScene(e){
   const s=incidents[e.code];
   if(!e.route)return {title:s.title,setup:s.setup,message:s.opening,choices:[
@@ -108,7 +112,7 @@ function seasonalEncounter(){
   const queue=game.queue.filter(e=>!e.read);
   let event=queue.find(e=>e.protected || e.type==='departure');
   if(!event && (upcoming().length || Object.values(game.contacts).some(c=>c.promise && c.deadline<=tick())))return;
-  event ||= queue.find(e=>e.type==='photoPromise');
+  event ||= queue.find(e=>e.type==='photoPromise') || queue.find(e=>e.type==='outreach') || queue.find(e=>e.type==='secret');
   if(!event && !game.finale){
     const m=pendingReunions().find(item=>(item.kind==='date' && item.choice===0) || tick()-item.when>=4);
     if(m){

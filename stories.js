@@ -171,6 +171,8 @@ function availableChapter(story,g){
 function selectChapter(g){
   function cast(story){
     let ids=Object.keys(g.contacts).filter(id=>!isCut(id) && !quietContact(id));
+    if(['relationship-1','relationship-2','relationship-3','relationship-18'].includes(story.code))
+      ids=ids.filter(id=>partner(g.contacts[id]) || eligible(g.contacts[id],'date'));
     if(story.code==='relationship-19')ids=ids.filter(id=>g.log.some(e=>e.id===id && (['conflict','split','dismiss'].includes(e.effect) || e.effect==='meetup' && ['비 오는 데벙','데벙에서 터진 말다툼'].includes(e.title))) || g.reunions?.some(m=>m.id===id && m.kind==='argument'));
     return ids;
   }

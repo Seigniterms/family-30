@@ -37,6 +37,13 @@ async function momentPng(entry){
   }
   paragraph('FAMILY 30    /    '+entry.year+'년 차 '+seasons[entry.season || 0],30,750,'#995842');
   y+=22;paragraph(entry.title,56,800,'#432b3e');y+=28;
+  let still;
+  const artTop=y;
+  if(entry.art && Object.hasOwn(secretArt,entry.art)){
+    still=new Image();
+    still.src='materials/secret-'+entry.art+'.webp';await still.decode();
+    y+=Math.round(inner*still.naturalHeight/still.naturalWidth)+30;
+  }
   const faceTop=y;
   y+=Math.ceil(people.length/5)*179+20;
   if(entry.label){
@@ -53,6 +60,7 @@ async function momentPng(entry){
   canvas.width=width;canvas.height=y+64;
   ctx.fillStyle='#fff3db';ctx.fillRect(0,0,width,canvas.height);
   ctx.fillStyle='#b86351';ctx.fillRect(0,0,width,18);
+  if(still)ctx.drawImage(still,margin,artTop,inner,Math.round(inner*still.naturalHeight/still.naturalWidth));
   for(const {line,y,font,color} of rows){
     ctx.font=font;ctx.fillStyle=color;ctx.textBaseline='top';ctx.fillText(line,margin,y);
   }

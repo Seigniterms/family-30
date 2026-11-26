@@ -88,3 +88,16 @@ test('a promised photo meeting takes priority over a casual follow-up',()=>{
   assert.equal(run('game.event.type'),'photoPromise');
   assert.equal(run('game.echoes.length'),1);
 });
+
+test('a commitment changes invitations in ordinary scenes before a secret meeting can begin',()=>{
+  for(const link of ["game.contacts.b.role='연인'", "game.townPairs.push({people:['a','b'],status:'연인',end:null})"]){
+    const run=loadTown();
+    run("game.contacts.a.affection=5;");
+    assert.equal(run("scene({type:'meet',id:'a'}).choices.some(c=>c.offer==='date')"),true);
+    run(link);
+    assert.equal(run("scene({type:'meet',id:'a'}).choices.some(c=>c.offer==='date')"),false);
+    assert.equal(run("validStoryEvent({type:'proposal',kind:'date',id:'a'})"),false);
+    assert.equal(run("incidentScene({type:'incident',code:'bag',route:'pair',id:'a',other:'b'}).choices[0].effect"),'friend');
+    assert.equal(run("validStoryEvent({type:'affair',id:'a',result:{line:'저장된 대답'}})"),true);
+  }
+});

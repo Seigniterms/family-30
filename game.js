@@ -2,6 +2,10 @@ const members = Object.fromEntries(Array.from(portraits, card => [card.dataset.i
   name: card.dataset.name, sex: card.dataset.sex, image: card.querySelector('img').src
 }]));
 const originalMembers=Object.keys(members);
+function withParticle(name,closed,open){
+  const last=name.charCodeAt(name.length-1)-0xac00;
+  return name+(last>=0 && last<=11171 && last%28!==0?closed:open);
+}
 const saveKey = 'family30.run.v2';
 function readFamilySave(raw){
   return JSON.parse(raw,(_key,value)=>typeof value==='string' && value.includes('대벙')
@@ -36,6 +40,7 @@ function navigate(resolved) {
   if(resolved?.result){
     const entry=game.log.at(-1),result=resolved.result;
     entry.label=result.label;
+    if(resolved.type==='secret' && resolved.art)entry.art=resolved.art;
     if(['echo','weddingLetter','photoNote','reunionMail'].includes(resolved.type))
       entry.present=[game.player,resolved.id];
     if(result.spoken){
@@ -174,6 +179,10 @@ function nextSeasonLabel(){return ['여름으로','가을로','겨울로','봄�
 function tick(){ return (game.year-1)*4+(game.season || 0); }
 function clockLabel(){ return game.year+'년 차 '+seasons[game.season || 0]; }
 function partner(c){ return ['연인','배우자'].includes(c.role); }
+function outsideRelationship(id){
+  return Object.entries(game.contacts).some(([other,c])=>other!==id && partner(c)) ||
+    (game.townPairs || []).some(p=>!p.end && p.people.includes(id));
+}
 function eligible(c,kind){
   if(!c || (c.quietUntil ?? 0)>tick() || c.callAfter!=null) return false;
   if(c.cooldown || c.needsMeeting){
@@ -181,8 +190,15 @@ function eligible(c,kind){
     const marriageOnly=(c.pauseKind || c.response?.kind)==='marry' && partner(c);
     if(blocked && (!marriageOnly || kind==='marry')) return false;
   }
-  if(kind==='marry') return c.role==='연인' && !spouse() && !townSpouse(Object.keys(game.contacts).find(id=>game.contacts[id]===c));
-  if(kind==='date')return !c.friendsOnly && !partner(c) && !townSpouse(Object.keys(game.contacts).find(id=>game.contacts[id]===c));
+  if(kind==='marry'){
+    const id=Object.keys(game.contacts).find(id=>game.contacts[id]===c);
+    return c.role==='연인' && !spouse() && !outsideRelationship(id);
+  }
+  if(kind==='date'){
+    const id=Object.keys(game.contacts).find(id=>game.contacts[id]===c);
+    return !c.friendsOnly && !partner(c) && !outsideRelationship(id) && !closeKin(game.player,id) &&
+      !allChildren().some(child=>child.id===id && childAge(child)<18);
+  }
   return true;
 }
 const offers={
@@ -191,6 +207,8 @@ const offers={
   marry:['앞으로도 네 곁에서 살고 싶어. 나랑 결혼할래?','응, 우리 결혼하자.','우리는 앞으로의 삶을 함께하기로 했다.']
 };
 function scene(e){
+  if(e.type==='secret')return secretScene(e);
+  if(e.type==='outreach')return outreachScene(e);
   if(e.type==='reunionMail')return reunionScene(e.memoryThread,true);
   if(e.type==='incident')return incidentScene(e);
   if(snapshotEvents.includes(e.type))return snapshotScene(e);
@@ -348,6 +366,15 @@ function advance(){
   } else game.season++;
   progressTown();
 }
+function validStoryEvent(e){
+  if(e.result)return true;
+  if(e.type==='secret')return validSecretEvent(e);
+  if(e.type==='outreach')return validOutreachEvent(e);
+  if(e.type==='affair')return false;
+  if(e.type==='approach' || (e.type==='proposal' && e.kind==='date'))
+    return eligible(game.contacts[e.id],'date');
+  return true;
+}
 function prepareSeason(){
   game.season ??= game.extra ? 2 : game.done ? 1 : 0;
   initLife();
@@ -357,10 +384,12 @@ function prepareSeason(){
     c.voice ??= ['잠깐, 나 할 말 있어! ','있잖아. ','천천히 들어 줘. '][c.pace];
     if(c.promise && c.deadline==null) c.deadline=tick()+1;
   }
+  game.queue=game.queue.filter(validStoryEvent);
   if(game.prepared===tick()) return;
   game.queue=game.queue.filter(e=>(e.protected || e.until>=tick()) && (e.type!=='proposal' || eligible(game.contacts[e.id],e.kind)));
   if(game.finale) game.queue=game.queue.filter(e=>e.protected);
   seasonSnapshot();
+  if(!game.finale)seasonOutreach();
   const used=new Set(game.queue.map(e=>e.id));
   function push(e,life){
     if(used.has(e.id) || (!e.protected && quietContact(e.id))) return false;
@@ -379,6 +408,8 @@ function prepareSeason(){
   if(game.familyDate){game.obligations.push(game.familyDate); delete game.familyDate;}
   game.obligations=game.obligations.filter(e=>!push({...e,protected:true},1));
   if(game.finale && game.queue.some(e=>e.protected)){game.prepared=tick();persist();return;}
+  if(!game.finale)queueSecretSeason();
+  for(const e of game.queue)used.add(e.id);
   const waiting=entries.filter(([id,c])=>partner(c) && !used.has(id) && !c.promise && !c.warning && eligible(c,'outing')).map(([id,c])=>{
     const last=game.log.findLast(entry=>entry.id===id);
     const lastTick=last?(last.year-1)*4+(last.season || 0):0;
@@ -434,7 +465,7 @@ function chooseAnnual() {
   const partners=entries.filter(([,c]) => ['연인','배우자'].includes(c.role));
   for(const [id,c] of entries) {
     if (['연인','배우자'].includes(c.role)) add('couple',id);
-    else { add('meet',id); if (partners.length) add('affair',id); }
+    else add('meet',id);
     if (['연인','배우자'].includes(c.role) || (c.affair && members[id].sex !== members[game.player].sex)) add('family',id);
     const seen=game.sightings?.find(s=>s.observer===id && !s.used);
     if(partner(c) && seen) pool.push({type:'clash',id,other:seen.other});
@@ -470,6 +501,8 @@ function answer(index) {
   if(e && !e.result && ['calendarVisit','childVisit','weddingLetter'].includes(e.type)){answerPersonal(e,index);return;}
   if(e && !e.result && ['outingDay','echo'].includes(e.type)){answerLife(e,index);return;}
   if (!e || e.result) return;
+  if(e.type==='secret'){answerSecret(e,index);return;}
+  if(e.type==='outreach'){answerOutreach(e,index);return;}
   if(e.type==='reunionMail'){finishReunion(e,index,true);return;}
   if(e.type==='incident'){handleIncident(e,index);return;}
   const {title,choices}=scene(e), c=game.contacts[e.id], action=choices[index];

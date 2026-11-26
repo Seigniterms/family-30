@@ -66,6 +66,7 @@ function progressTown(){
     p.startVisits ??= sharedBond(...p.people)?.visits || 0;
     const age=tick()-p.since;
     if(p.status==='연인' && age>=p.decision){
+      if(p.people.includes(spouse()))continue;
       const decision=townDecision(p);
       if(decision.split){
         p.status='옛 연인';p.end=tick();townNews(p,'각자의 길',decision.reason || '두 사람은 연애를 끝내고 각자의 생활로 돌아갔다.');
@@ -88,7 +89,7 @@ function progressTown(){
   }
   if(tick()%2===0)return;
   const children=allChildren(), active=game.townPairs.filter(p=>!p.end && !p.people.some(isCut));
-  const eligible=id=>id!==game.player && !isCut(id) && !active.some(p=>p.people.includes(id)) &&
+  const eligible=id=>id!==game.player && id!==spouse() && !isCut(id) && !active.some(p=>p.people.includes(id)) &&
     !children.some(c=>c.id===id && childAge(c)<18);
   const available=familyIds().filter(eligible);
   if(!available.length && unused().length){const id=pick(unused());meet(id);available.push(id);}
@@ -173,11 +174,11 @@ function personActions(parent,id,main){
   if(allChildren().some(c=>c.id===id)){
     kinAction(parent,'함께 시간 보내기',()=>{if(sheet.open)sheet.close();childMenu(id);});
   }else if(game.contacts[id]){
+    const memory=outreachMemory(id);
+    if(memory)node('p','마지막으로 함께한 장면 · '+memory.title,parent);
     const talk=kinAction(parent,quietContact(id)?'지금은 혼자 쉬는 중':'먼저 연락하기',()=>{
       if(sheet.open)sheet.close();
-      const current=gathered.find(entry=>entry.e.id===id);
-      preview=current || {e:{type:partner(game.contacts[id])?'couple':'meet',id},kind:'visitor',hint:''};
-      browsingTopics=!!current;courtesy=null;page=0;lastBeat=null;renderStage();
+      outreachMenu(id);
     });
     talk.disabled=quietContact(id);
   }

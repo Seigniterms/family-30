@@ -154,6 +154,7 @@ function baseScene(e) {
   return {title,setup,message,choices};
 }
 const seasons=['봄','여름','가을','겨울'];
+function nextSeasonLabel(){return ['여름으로','가을로','겨울로','봄으로'][game.season || 0];}
 function tick(){ return (game.year-1)*4+(game.season || 0); }
 function clockLabel(){ return game.year+'년 차 '+seasons[game.season || 0]; }
 function partner(c){ return ['연인','배우자'].includes(c.role); }

@@ -1,8 +1,8 @@
 // The spring photo keeps its actual cast throughout the run.
 function firstSnapshot(){
-  const choose=(preferred,exclude)=>preferred.find(id=>id!==game.player && !exclude.includes(id) && !isCut(id));
-  const joker=choose(['24','6','31'],[]);
-  const sender=choose(['6','31','24'],[joker]);
+  const cast=(names,exclude)=>pick(originalMembers.filter(id=>id!==game.player && id!==exclude && names.includes(members[id].name)));
+  const joker=cast(['박들춘','유유','민민']);
+  const sender=cast(['히히','우주','씽씽'],joker);
   meet(joker);meet(sender);
   game.snapshot={joker,sender};
   return {type:'snapshot',id:joker};
@@ -66,6 +66,7 @@ function photoPrint(parent,frame,privateShot=false){
   for(const id of cast){
     const img=node('img','',print);img.alt='';img.src=members[id].image;
   }
+  return print;
 }
 const approaches={
   shoot:['다들 카메라 보는데 너만 다른 데 보더라. 그 컷 보내도 돼?','그 사진 나한테만 보내줘.','사진 모아서 다 같이 보자.','딱 한 장 골라 둔 게 있어. 너한테 먼저 보여 주고 싶었어.'],

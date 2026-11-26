@@ -360,7 +360,7 @@ function lifeDock(){
   if(game.diary.length || Object.values(game.contacts).some(c=>c.promise))dockButton('내 일정'+(game.diary.some(p=>p.state==='proposal')?' · 날짜 정하기':''),calendarMenu,true);
   if(!w.taken)dockButton('토요일 번개 열기',hosts);
   else if(due)dockButton('도착한 후일담 읽기',messages);
-  dockButton(game.year===30 && game.season===3?'30년의 마지막 겨울 마치기':seasons[(game.season+1)%4]+'으로 넘어가기',()=>passSeason());
+  dockButton(game.year===30 && game.season===3?'30년의 마지막 겨울 마치기':nextSeasonLabel()+' 넘어가기',()=>passSeason());
   if(canEndEarly())dockButton('지금 엔딩 보기',earlyEndingMenu,true);
   if(!needsReply() && tick()<119)dockButton('다음 소식까지 쉬기',()=>passSeason(true),true);
 }

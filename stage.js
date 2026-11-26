@@ -206,7 +206,12 @@ function renderStage(){
     actors.replaceChildren();
     const wall=node('div','',actors,'snap-wall');
     if(event.type==='snapshot' && !event.result){
-      photoPrint(wall,0);photoPrint(wall,1);
+      story.choices.forEach((choice,index)=>{
+        const button=node('button','',wall,'snap-pick');
+        button.type='button';button.setAttribute('aria-label',choice.label+' 선택');
+        photoPrint(button,index);
+        button.onclick=()=>answer(index);
+      });
     }else photoPrint(wall,game.snapshot.frame,event.type==='photoNote' || (event.type==='photoReunion' && game.snapshot.reply===0));
     node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':members[event.id].name+(event.type==='photoWinter'?' · 사진첩':' · 개인톡'),wall,'snap-caption');
   }
@@ -250,7 +255,7 @@ function renderStage(){
       leave();openSeasonEvent(letter);
     });
     if(reveal)dockButton('달라진 가계도 보기',()=>{leave();navigate();openAlbum();});
-    dockButton(tick()===119?'마지막 겨울 마치기':seasons[(game.season+1)%4]+'으로 ▸',()=>{
+    dockButton(tick()===119?'마지막 겨울 마치기':nextSeasonLabel()+' ▸',()=>{
       // Keep the result available if the player cancels the missed-appointment prompt.
       passSeason(false,leave);
     },!!letter || reveal);

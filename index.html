@@ -478,13 +478,14 @@
         <img id="confirm-photo" alt="">
         <p class="character-quote" id="confirm-quote"></p>
         <h2 id="confirm-title"><span>선택한 캐릭터는</span> <span>‘<span id="confirm-name"></span>’입니다. 맞나요?</span></h2>
+        <label class="run-goal">이번 이야기 <select id="run-goal"><option>동창들의 아지트</option><option>한 지붕 작업실</option><option>골목 야식회</option></select></label>
         <button class="start-button" id="confirm-start" type="button">이 캐릭터로 시작하기</button>
         <button class="secondary" id="choose-again" type="button">다시 고르기</button>
       </dialog>
     </section>
     <section id="first-chat" class="screen play-stage" aria-label="플레이 장면" hidden>
-      <header class="stage-hud"><span id="stage-time"></span><div id="stage-hud-tools"><button id="open-album" type="button">가족 앨범</button></div></header>
-      <div id="stage-actors"></div>
+      <header class="stage-hud"><span id="stage-time"></span><div id="stage-hud-tools"><button id="circle" type="button">단톡방</button><button id="open-album" type="button">가족 앨범</button><button id="reset-run" type="button">리셋</button></div></header>
+      <dialog id="life-menu" aria-labelledby="life-title"><form method="dialog"><button aria-label="닫기">×</button></form><h2 id="life-title"></h2><div id="life-body"></div></dialog><div id="stage-actors"></div>
       <div id="stage-dock" aria-live="polite"></div>
       <dialog id="family-album" aria-label="가족 앨범"><form method="dialog"><button autofocus>장면으로 돌아가기 ×</button></form><div id="family-content"></div></dialog>
     </section>
@@ -531,9 +532,9 @@
     let candidate;
     document.querySelector('#choose-again').onclick = () => dialog.close();
     document.querySelector('#confirm-start').onclick = () => {
-      if (game && !confirm('진행 중인 회차를 새 게임으로 바꿀까요?')) return;
+      if (game && !game.ended && !confirm('진행 중인 회차를 새 게임으로 바꿀까요?')) return;
       dialog.close();
-      startRun(candidate.dataset.id);
+      startRun(candidate.dataset.id, null, null, document.getElementById('run-goal').value);
     };
     for (const portrait of portraits) {
       portrait.addEventListener('click', () => {
@@ -549,7 +550,7 @@
       const query = event.target.value.trim();
       let matches = 0;
       for (const card of portraits) {
-        card.hidden = !card.dataset.name.includes(query);
+        card.hidden = storedList('family30.excluded').includes(card.dataset.id) || !card.dataset.name.includes(query);
         if (!card.hidden) matches++;
         if (card.hidden && card.getAttribute('aria-pressed') === 'true') {
           card.setAttribute('aria-pressed', 'false');
@@ -571,6 +572,10 @@
   </script>
   <script src="stories.js"></script>
   <script src="game.js"></script>
+  <script src="life.js"></script>
+  <script src="kin.js"></script>
+  <script src="plans.js"></script>
+  <script src="credits.js"></script>
   <script src="stage.js"></script>
 </body>
 </html>

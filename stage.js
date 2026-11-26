@@ -10,6 +10,28 @@ function openAlbum(){
   if(!albumDialog.open) albumDialog.showModal();
 }
 el('open-album').onclick=openAlbum;
+el('reset-run').onclick=()=>{
+  if(!game || game.ended) return;
+  menu('이번 회차를 리셋할까요?');
+  node('p',members[game.player].name+'의 '+clockLabel()+'까지 진행한 이야기와 약속이 지워져요. 처음부터 캐릭터를 다시 고를 수 있어요.',lifeBody);
+  menuButton('계속 플레이',closeMenu);
+  menuButton('리셋하고 다시 고르기',()=>{
+    try {
+      localStorage.removeItem('family30.run.v1');
+      localStorage.removeItem(saveKey);
+    } catch {
+      node('p','진행 기록을 지우지 못했어요. 잠시 후 다시 시도해 주세요.',lifeBody);
+      return;
+    }
+    game=null;
+    closeMenu();
+    el('save-warning').hidden=true;
+    el('album-search').value='';
+    for(const card of portraits) card.setAttribute('aria-pressed','false');
+    history.replaceState(null,'','#character-select');
+    renderGame();
+  });
+};
 function dockButton(text,fn,quiet=false){
   const btn=node('button',text,dock,quiet?'quiet':'');
   btn.type='button';btn.onclick=fn;
@@ -31,14 +53,14 @@ function stageEntries(){
   }
   const visible=[],ids=new Set();
   for(const item of list){
-    if(!ids.has(item.e.id) && ids.size>=3) continue;
+
     ids.add(item.e.id);visible.push(item);
     if(item.c) item.c.shown=tick(); else item.e.shown=tick();
   }
-  if(!game.finale && ids.size<3){
-    const familiar=Object.keys(game.contacts).filter(id=>!ids.has(id) && !game.contacts[id].promise);
+  if(!game.finale){
+    const familiar=Object.keys(game.contacts).filter(id=>!quietContact(id) && !ids.has(id) && !game.contacts[id].promise);
     const id=familiar[tick()%Math.max(1,familiar.length)];
-    if(id) visible.push({e:{id,type:partner(game.contacts[id])?'couple':'meet'},kind:'visitor',hint:''});
+    if(id && !game.log.some(e=>e.year===game.year && e.season===game.season && e.id===id)) visible.push({e:{id,type:partner(game.contacts[id])?'couple':'meet'},kind:'visitor',hint:''});
   }
   return visible;
 }
@@ -49,6 +71,7 @@ function acceptEntry(entry){
   if(entry.kind==='promise'){
     const c=entry.c;
     c.promise=false;delete c.note;delete c.waitAt;c.needsMeeting=false;c.kept=(c.kept || 0)+1;c.trust=(c.trust || 0)+1;
+    c.unansweredWarning=false;
     if(c.warning==='heard') c.warning=null;
     if(c.plan==='concert') c.affection++;
   } else if(entry.kind==='event') game.queue=game.queue.filter(e=>e.key!==entry.e.key);
@@ -69,7 +92,7 @@ function placeActors(ids){
   const returning=ids.filter(id=>spots[id]!=null);
   returning.sort((a,b)=>Number(present.includes(b))-Number(present.includes(a)));
   for(const id of returning) assign(id,spots[id]);
-  for(const id of ids.filter(id=>spots[id]==null)) assign(id,Number(id));
+  for(const id of ids.filter(id=>spots[id]==null)) assign(id,Number(id) || 0);
   return spots;
 }
 function extraAction(entry){
@@ -84,15 +107,15 @@ function stageFace(id,hint,slot,focused,fn){
   if(!b){
     b=node('button','',actors,'stage-person'); b.dataset.id=id;
     node('small','',b);
-    const image=node('img','',b);image.src=members[id].image;image.alt='';
-    node('strong',(id===game.player?'나 · ':'')+members[id].name,b);
+    const image=node('img','',b);image.src=kinPerson(id).image;image.alt='';
+    node('strong',(id===game.player?'나 · ':'')+kinPerson(id).name,b);
   }
   b.classList.toggle('active',focused);
   b.type='button';b.disabled=!fn;b.onclick=fn;
   const [x,y]=landmarks[slot];b.style.left=x+'%';b.style.top=y+'%';
   const bubble=b.querySelector('small');
   bubble.textContent=hint || '';bubble.hidden=!hint || focused;
-  b.setAttribute('aria-label',[members[id].name,hint].filter(Boolean).join(' · '));
+  b.setAttribute('aria-label',[kinPerson(id).name,hint].filter(Boolean).join(' · '));
 }
 function pages(text){
   const lines=[''];
@@ -112,8 +135,10 @@ function eventPlace(e){
 let displayedRun;
 function renderStage(){
   el('stage-hud-tools').querySelector('.stage-back')?.remove();
-  if(displayedRun!==game){displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
+  if(displayedRun!==game){kinFocus=game.kinPath?.filter(id=>!isCut(id)).at(-1) || game.player;displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
   if(!game.event && !game.ended) prepareSeason();
+  el('reset-run').hidden=game.ended;
+  el('circle').hidden=!!game.event || game.ended;
   if(!game.event && !preview) gathered=game.ended?[]:stageEntries();
   const event=game.event || preview?.e;
   if(game.event) venue=event.stagePlace || eventPlace(event);
@@ -125,15 +150,20 @@ function renderStage(){
   actors.classList.toggle('focused',!!event);
   actors.classList.remove('speaking');
   actors.dataset.reaction=event?.result ? (['no','later','split'].includes(game.log.at(-1)?.effect)?'hesitate':'reply'):'';
+  actors.classList.toggle('neighbourhood',!event && !game.ended);
+  actors.querySelector('.town-board')?.remove();
+  chat.classList.toggle('in-credits',game.ended);
   if(game.ended){
-    actors.replaceChildren();
-    node('p',ending(game).title,dock);dockButton('30년의 가족 앨범',openAlbum);return;
+    showCredits();return;
   }
-  const speaker=event?.type==='ticketChat'?event.other:event?.id;
-  let ids=[...new Set(gathered.map(item=>item.e.id))].sort((a,b)=>Number(a)-Number(b));
-  if(speaker && !ids.includes(speaker)) ids=[speaker,...ids].slice(0,3);
-  if(!ids.includes(game.player) && ids.length<3) ids.push(game.player);
-  if(venue==='seats' && speaker) ids=[game.player,speaker].filter((id,i,list)=>list.indexOf(id)===i);
+  const speaker=event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
+  if(!event){
+    actors.replaceChildren();
+    const board=node('div','',actors,'town-board');
+    drawTown(board,gathered);
+    lifeDock();persist();return;
+  }
+  let ids=[...new Set([speaker,game.player,...(event.guests || [])].filter(Boolean))].slice(0,3);
   for(const actor of Array.from(actors.children)) if(!ids.includes(actor.dataset.id)) actor.remove();
   const spots=placeActors(ids);
   ids.forEach(id=>{
@@ -141,28 +171,12 @@ function renderStage(){
     stageFace(id,entry?.hint,spots[id],id===speaker,!game.event && entry?()=>{
       const topics=gathered.filter(item=>item.e.id===id);
       const changeSeat=entry.c?.plan==='concert' && !entry.c.waitAt && entry.c.postponed!==tick();
-      const menu=topics.length>1 || extraAction(entry) || changeSeat;
+      const menu=!!game.contacts[id] || topics.length>1 || extraAction(entry) || changeSeat;
       venue=menu?'square':eventPlace(entry.e);
       preview=entry;courtesy=null;browsingTopics=!!menu;page=0;lastBeat=null;renderStage();
     }:null);
 
   });
-  if(!event){
-    const notes=Object.entries(game.contacts).filter(([,c])=>c.note?.until===tick());
-    for(const [id,c] of notes){
-      const memo=node('button',members[id].name+'의 쪽지',actors,'spot-note');
-      const slot=spots[id] ?? Number(id)%3;
-      const pile=notes.slice(0,notes.findIndex(n=>n[0]===id)).filter(([other])=>(spots[other] ?? Number(other)%3)===slot).length;
-      memo.style.left=landmarks[slot][0]+'%';
-      memo.style.top='calc('+landmarks[slot][1]+'% + '+(48+pile*28)+'px)';
-      memo.onclick=()=>{dock.replaceChildren();node('p',members[id].name+' · '+c.note.text,dock,'left-note');dockButton('접기',renderStage,true);};
-    }
-    const souvenir=game.keepsakes?.at(-1);
-    if(!notes.length && souvenir?.year===game.year) node('p',souvenir.title+' · '+members[souvenir.id].name,dock);
-    if(game.season>=2 && !game.obligations?.length && !Object.values(game.contacts).some(c=>c.promise) && !game.queue.some(e=>e.protected) && !gathered.some(i=>i.c || i.e.protected || ['warning','departure','sports','proposal','anniversary'].includes(i.e.type)))
-      dockButton('이번 해를 조용히 마무리',()=>{game.season=3;advance();navigate();},true);
-    persist();return;
-  }
   const topics=gathered.filter(item=>item.e.id===speaker);
   if(courtesy && preview){
     node('div',courtesy,actors,'actor-dialogue');
@@ -182,6 +196,7 @@ function renderStage(){
     if(booking) dockButton('오늘 조금 늦을 것 같아',()=>{
       courtesy=changeAppointment(booking.c,true);persist();renderStage();
     });
+    if(game.contacts[speaker]) dockButton('관계 정리',()=>cutMenu(speaker),true);
     dockButton('주변 보기',()=>focusOn(null),true);return;
   }
   const story=scene(event);
@@ -213,15 +228,13 @@ function renderStage(){
     line.setAttribute('aria-label',line.textContent+' · 다음 대사');line.onclick=nextLine;
     line.onkeydown=ev=>{if(['Enter',' '].includes(ev.key)){ev.preventDefault();nextLine();}};
   } else if(event.result){
-    dockButton(game.year===30 && game.season===3?'마지막 장면으로 ▸':seasons[((game.season||0)+1)%4]+'으로 ▸',()=>{
+    dockButton('동네로 돌아가기 ▸',()=>{
       const reveal=['marry','arrival'].includes(game.log.at(-1)?.effect);
       game.event=null;preview=null;page=0;lastBeat=null;
-      if(event.advanceOnClose) advance();
       navigate();
       if(reveal || game.ended) openAlbum();
     });
   } else {
-    node('small',(event.type==='concert'?'공연을 마치면':'이 장면을 마치면')+' '+(game.year===30 && game.season===3?'마지막 겨울이 끝나요':seasons[((game.season||0)+1)%4]+'으로 넘어가요'),dock,'action-time');
     story.choices.forEach((choice,i)=>dockButton(choice.label,()=>{
       if(preview){acceptEntry(preview);event.stagePlace=venue;}
       page=0;answer(i);

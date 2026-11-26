@@ -144,6 +144,9 @@ function availableChapter(story,g){
 function selectChapter(g){
   const pool=library.filter(s=>availableChapter(s,g));
   const preferred=g.year<=5?['work','town','relationship']:g.year<=15?['relationship','home','family']:g.year<=25?['family','health','home']:['family','town','health'];
+  const recent=g.log.filter(e=>e.code).slice(-2).map(e=>e.code.split('-')[0]);
+  const varied=pool.filter(s=>!recent.includes(s.group));
+  if(varied.length)pool.splice(0,pool.length,...varied);
   const chosen=pick(pool.concat(pool.filter(s=>preferred.includes(s.group))));
   if(!chosen) return null;
   const contacts=Object.keys(g.contacts);
@@ -161,5 +164,5 @@ function ending(g){
     ['다시 문을 연 우리',count('split')*2+Math.max(0,g.marriages.length-1)*12]
   ];
   const tests=[['첫사랑',count('date')>0],['평생의 짝',longest>=10],['다시 시작',g.marriages.length>1],['혼자서도 가족',g.children.some(c=>c.parents.length===1)],['두 집의 기억',g.marriages.some(m=>m.end!==null)&&g.children.length],['공연 친구',g.keepsakes?.some(k=>k.title.includes('공연'))],['먼저 건넨 손',count('repair')>0],['동네 단골',events.some(e=>e.code?.startsWith('town-'))],['가족 앨범',g.keepsakes?.length>=2],['오래된 친구',Object.values(g.contacts).some(c=>c.role==='친구')]];
-  return {title:scores.sort((a,b)=>b[1]-a[1])[0][0],tags:tests.filter(t=>t[1]).map(t=>t[0])};
+  return {title:epilogue(g)?.title || scores.sort((a,b)=>b[1]-a[1])[0][0],tags:tests.filter(t=>t[1]).map(t=>t[0])};
 }

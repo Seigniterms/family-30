@@ -617,6 +617,7 @@ function fillAlbum() {
     const milestones=visibleLog.filter(e=>['birth','solo','adopt','date','marry','split'].includes(e.effect));
     const highlights=new Set([visibleLog[0],milestones[0],milestones.at(-1),visibleLog.findLast(e=>e.code),visibleLog.at(-1)].filter(Boolean));
     for(const entry of highlights) node('p',logText(entry),box,'memory-card');
+    control(box,'엔딩 이미지 저장·공유',endingExport);
     control(box,'새 이야기 시작하기',()=>{el('family-album').close();location.hash='character-select';});
   }
   const latest=game.keepsakes?.findLast(visibleMemory);

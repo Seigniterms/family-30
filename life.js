@@ -140,9 +140,10 @@ function lifeScene(e){
     return {title:e.title,setup:e.previous || '지난번 일이 다시 내게 돌아왔다.',message:e.message,choices:[
       opt(...follow),opt('오늘은 답장만 남긴다.','소식을 전해 줘서 고맙다고 답했다.')]};
   }
+  if(e.social && !e.social.resolved)return meetupScene(e);
   const o=outings[e.activity];
   if(e.role==null && e.guests.length){
-    const roles=teamRoles[e.activity];return {title:o.title,setup:e.guests.map(id=>members[id].name).join(' · ')+'와 모였다.',message:'오늘 네가 맡고 싶은 건 뭐야?',choices:[opt(roles[0],roles[2]),opt(roles[1],roles[3])]};
+    const roles=teamRoles[e.activity];return {title:o.title,setup:(e.social?.line?e.social.line+' ':'')+e.guests.map(id=>members[id].name).join(' · ')+'와 모였다.',message:'오늘 네가 맡고 싶은 건 뭐야?',choices:[opt(roles[0],roles[2]),opt(roles[1],roles[3])]};
   }
   return {title:o.title,setup:(e.role!=null?teamRoles[e.activity][2+e.role]+' ':'')+(e.declined?.length?e.declined.map(id=>members[id].name).join(' · ')+'에게 답장이 왔다. “이번엔 쉴게. 다음에 보자.” ':'')+(e.guests.length?e.guests.map(id=>members[id].name).join(' · ')+'와 길을 나섰다. ':'나 혼자 길을 나섰다. ')+o.setup,message:e.id===game.player?'혼자 온 김에 어디까지 해 볼까?':o.voice,choices:o.paths.map(p=>opt(p[0],p[1]))};
 }
@@ -158,6 +159,7 @@ function answerLife(e,index){
   const a=lifeScene(e).choices[index];if(!a)return;
   let memory=a.line;
   if(e.type==='outingDay'){
+    if(e.social && !e.social.resolved){settleMeetup(e,index);return;}
     if(e.role==null && e.guests.length){e.role=index;page=0;lastBeat=null;navigate();return;}
     const o=outings[e.activity], path=o.paths[index], club=game.club;
     club.visits++;club.tracks[o.track]=(club.tracks[o.track] || 0)+1;
@@ -168,7 +170,10 @@ function answerLife(e,index){
       if(e.role===1 || favorite(id)===e.activity)advanceCareer(id,e.activity);
       if(e.role===0 && index===0)c.trust=(c.trust || 0)+1;
     }
-    bond(...e.guests);const skill=club.tracks[o.track];
+    for(let i=0;i<e.guests.length;i++)for(const other of e.guests.slice(i+1)){
+      if(!game.feuds?.some(pair=>pair.includes(e.guests[i]) && pair.includes(other)))bond(e.guests[i],other);
+    }
+    const skill=club.tracks[o.track];
     if(skill===3)memory+=' 동네 사람들이 나를 '+o.job+'로 부르기 시작했다.';
     if(club.visits===3)memory+=' 다 같이 모일 단골자리가 생겼다.';
     if(!club.completed && goalProgress(club)>=3){
@@ -219,11 +224,25 @@ function weekendRoster(w,i){
   const available=new Set([...Object.keys(game.contacts),...unused()]);
   return w.rosters[i].filter(id=>available.has(id) && !isCut(id));
 }
-function reserve(i,guests){
-  const w=weekend();if(w.taken || game.event)return;
-  guests=[...new Set(guests)].filter(id=>weekendRoster(w,i).includes(id)).slice(0,2);
+function reserve(i,guests,confirmed=false){
+  const w=weekend();if(w.taken || game.event || game.ended)return;
+  guests=[...new Set(guests)].filter(id=>weekendRoster(w,i).includes(id));
   const declined=guests.filter(id=>quietContact(id) || game.contacts[id]?.warning || (game.contacts[id]?.changes>=2 && game.contacts[id]?.callAfter>tick()));
   guests=guests.filter(id=>!declined.includes(id));
+  if(!guests.length){
+    menu('함께 갈 멤버가 없어요');node('p','다른 멤버를 한 명 이상 초대해 주세요.',lifeBody);menuButton('다시 고르기',hosts);return;
+  }
+  if(guests.length===1 && !confirmed){
+    const id=guests[0];
+    if(game.contacts[id]?.friendsOnly || closeKin(game.player,id)){
+      menu('여럿이 만나는 번개');node('p',members[id].name+'와는 다른 멤버도 함께 초대해요.',lifeBody);
+      menuButton('멤버 더 고르기',()=>guestMenu(i,guests));return;
+    }
+    menu('둘만 가는 대벙이에요');
+    if(declined.length)node('p',declined.map(id=>members[id].name).join(' · ')+' 멤버는 이번에 쉬기로 했어요.',lifeBody);
+    node('p',members[id].name+'와 단둘이 만나는 데이트 번개예요. 둘이서 갈까요?',lifeBody);
+    menuButton('좋아, 대벙으로 출발',()=>reserve(i,guests,true));menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
+  }
   const others=weekendRoster(w,1-i).filter(id=>!quietContact(id) && !game.contacts[id]?.warning);
   if(others.length>=2){
     const [a,b]=others;meet(a);meet(b);bond(a,b);advanceCareer(a,w.plans[1-i]);advanceCareer(b,w.plans[1-i]);
@@ -232,38 +251,32 @@ function reserve(i,guests){
     remember(a,'내가 빠진 토요일',memory,'neighbors',[b]);addEcho(a,'neighbors',members[b].name+'랑 다녀왔어. 사진 구경할래?',rival.title+' 단체사진',[b]);
   }
   guests.forEach(meet);w.taken=true;
-  enterScene({type:'outingDay',activity:w.plans[i],id:guests[0] || game.player,guests,declined});
+  enterScene({type:'outingDay',activity:w.plans[i],id:guests[0],guests,declined,social:meetupSituation(guests)});
 }
 function hosts(){
   const w=weekend();menu('토요일, 어디로 갈까?');
   node('p',game.club.goal+' · '+goals[game.club.goal].brief,lifeBody);
-  node('p','같은 날 열린 두 약속이에요. 같이 갈 사람은 두 명까지 부를 수 있어요.',lifeBody);
+  node('p','같이 갈 멤버를 한 명 이상 골라요. 단둘이 만나면 대벙이에요.',lifeBody);
   w.plans.forEach((key,i)=>{
     const roster=weekendRoster(w,i);
-    menuButton(outings[key].title+' · '+(roster.map(id=>members[id].name).join(' · ') || '혼자 가기'),()=>{
-      menu(outings[key].title);const guests=[];
-      const status=node('p','같이 갈 사람 · 0/2',lifeBody,'guest-status');status.setAttribute('aria-live','polite');
-      const swap=node('div','',lifeBody);const inputs=new Map();
-      function sync(){
-        swap.replaceChildren();for(const [id,b] of inputs)b.checked=guests.includes(id);
-        status.textContent='같이 갈 사람 · '+guests.length+'/2 '+guests.map(id=>members[id].name).join(' · ');
-      }
-      for(const id of roster){
-        const label=node('label','',lifeBody,'invitee'),b=node('input','',label);b.type='checkbox';
-        inputs.set(id,b);b.disabled=quietContact(id);
-        b.onchange=()=>{
-          if(b.checked && guests.length===2){
-            sync();node('p',members[id].name+' 초대 · 누구와 바꿀까요?',swap);
-            for(const old of guests)control(swap,members[old].name+' 대신 초대',()=>{guests[guests.indexOf(old)]=id;sync();});
-            control(swap,'그대로 두기',sync);swap.scrollIntoView?.({block:'nearest'});return;
-          }
-          if(b.checked)guests.push(id);else guests.splice(guests.indexOf(id),1);sync();
-        };
-        label.append(' '+members[id].name+(quietContact(id)?' · 혼자 쉬는 중':favorite(id)===key?' · 기다리던 번개':''));
-      }
-      menuButton('이대로 출발',()=>reserve(i,guests));menuButton('다른 약속 보기',hosts);
-    });
+    menuButton(outings[key].title+' · '+(roster.map(id=>members[id].name).join(' · ') || '참석자 없음'),()=>guestMenu(i));
   });
+}
+function guestMenu(i,selected=[]){
+  const w=weekend(),key=w.plans[i],roster=weekendRoster(w,i);
+  const guests=new Set(selected.filter(id=>roster.includes(id) && !quietContact(id)));
+  menu(outings[key].title);
+  const status=node('p','',lifeBody,'guest-status');status.setAttribute('aria-live','polite');
+  for(const id of roster){
+    const label=node('label','',lifeBody,'invitee'),box=node('input','',label);
+    box.type='checkbox';box.disabled=quietContact(id);box.checked=guests.has(id);
+    box.onchange=()=>{if(box.checked)guests.add(id);else guests.delete(id);sync();};
+    label.append(' '+members[id].name+(box.disabled?' · 혼자 쉬는 중':favorite(id)===key?' · 기다리던 번개':''));
+  }
+  const depart=node('button','이대로 출발',lifeBody,'start-button');depart.type='button';
+  depart.onclick=()=>reserve(i,[...guests]);menuButton('다른 약속 보기',hosts);
+  function sync(){depart.disabled=!guests.size;status.textContent=guests.size?'함께 갈 멤버 · '+guests.size+'명':'한 명 이상 골라 주세요.';}
+  sync();
 }
 function growth(){
   for(const child of game.children){

@@ -132,3 +132,5 @@
 .kin-cluster strong{font-size:13px}.kin-cluster small{font-size:11px;line-height:1.2;overflow-wrap:anywhere}
 .kin-pages{display:flex;align-items:center;justify-content:space-between}
 #kin-dialog{box-sizing:border-box;max-height:96dvh}.kin-pages button,#kin-detail .kin-card{min-height:44px}
+.ending-download{display:block;padding:12px;border:1px solid #bb926f;border-radius:12px;background:#fff2d7;color:#533947;text-decoration:none;text-align:center;font-weight:700;margin:5px 0}
+#life-body button:disabled{opacity:.5;cursor:default}

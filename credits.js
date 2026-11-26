@@ -44,6 +44,7 @@ function showCredits(replay=false){
     const group=node('div','',frame,'credit-group');
     for(const [id,role] of cast)creditPortrait(group,id,role);
     dockButton(tick()===119?'30년의 가족 앨범':'우리 가족 앨범',openAlbum);
+    dockButton('엔딩 이미지 저장·공유',endingExport);
     dockButton('엔딩 다시 보기',()=>showCredits(true),true);
     if(!game.creditsSeen){game.creditsSeen=true;persist();}
   }
@@ -69,13 +70,13 @@ function showCredits(replay=false){
   function finish(){cancelAnimationFrame(raf);finalPhoto();}
   function animate(now){
     if(!frame.isConnected)return;
-    if(paused || chat.hidden || document.hidden || albumDialog.open){last=null;}
+    if(paused || chat.hidden || document.hidden || lifeMenu.open || albumDialog.open){last=null;}
     else if(last!==null){
       position+=Math.min(now-last,100)*0.032;
       frame.scrollTop=Math.min(position,maxScroll());
       if(position>=maxScroll()+55){finish();return;}
     }
-    if(!paused && !chat.hidden && !document.hidden && !albumDialog.open)last=now;
+    if(!paused && !chat.hidden && !document.hidden && !lifeMenu.open && !albumDialog.open)last=now;
     raf=requestAnimationFrame(animate);
   }
   if(manual){
@@ -85,5 +86,6 @@ function showCredits(replay=false){
     pause.onclick=()=>{paused=!paused;pause.textContent=paused?'계속 보기':'잠시 멈추기';last=null;};
     raf=requestAnimationFrame(animate);
   }
+  dockButton('엔딩 이미지 저장·공유',endingExport);
   dockButton('마지막 사진 보기',()=>{if(raf!==undefined)cancelAnimationFrame(raf);finalPhoto();},true);
 }

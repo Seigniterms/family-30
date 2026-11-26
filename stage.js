@@ -158,7 +158,7 @@ function renderStage(){
   if(game.ended){
     showCredits();return;
   }
-  const speaker=event?.type==='incident' && event.route==='group'?event.other:event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
+  const speaker=event?.social && !event.social.resolved?event.social.speaker:event?.type==='incident' && event.route==='group'?event.other:event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
   if(!event){
     actors.replaceChildren();
     const board=node('div','',actors,'town-board');

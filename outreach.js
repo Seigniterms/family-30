@@ -164,6 +164,13 @@ function seasonOutreach(){
 function outreachScene(e){
   const idea=outreachIdeas[e.activity],hello=e.mode==='hello',group=e.mode==='group';
   const setup=e.sourceThread?'전시표를 건넸던 날 셋이 보기로 했다. 약속한 날, 상대가 먼저 국숫집 위치를 보내 왔다.':e.rescheduled?'상대가 다시 잡아 준 날이 되자 먼저 연락이 왔다.':e.origin?'지난번 ‘'+e.origin+'’ 이야기를 꺼내 내가 먼저 연락했다.':'지난 계절에 내가 먼저 연락했다.';
+  if(hello && e.step==='talk'){
+    return {title:'이어진 안부 전화',message:'응. 잠깐 이어폰 낄게. 오늘 무슨 일 있었어?',choices:[
+      {label:'오늘 있었던 웃긴 일을 들려준다.',line:'진짜? 나도 그 자리에 있었으면 같이 웃었겠다. 네 얘기 들으니까 오늘 기분 좋아졌어.'},
+      {label:'요즘 조금 지쳤다고 털어놓는다.',line:'그랬구나. 오늘은 네 얘기 더 들을게. 천천히 말해도 돼.'},
+      {label:'너는 오늘 어땠는지 묻는다.',line:'나는 별일 없었는데, 네 전화 받고 오늘 제일 반가웠어.'}
+    ]};
+  }
   if(e.mode==='sendback'){
     const reply=sendbacks[e.sendback];
     return {title:reply.title,setup,message:reply.opening,choices:reply.choices.map(([label,line])=>({label,line}))};
@@ -178,9 +185,12 @@ function outreachScene(e){
 function answerOutreach(e,index){
   if(e.result || !validOutreachEvent(e))return;
   const story=outreachScene(e),action=story.choices[index];if(!action)return;
+  if(e.mode==='hello' && !e.step && index===0){
+    e.step='talk';e.firstChoice=action.label;navigate();return;
+  }
   const c=game.contacts[e.id];c.trust=(c.trust || 0)+1;
   if(e.mode==='pair' && index===0)c.affection++;
   if(e.mode==='group')bond(e.id,e.guests[0]);
   remember(e.id,story.title,action.line,'outreach',e.guests);
-  e.result={label:action.label,line:action.line,spoken:true,speaker:e.id};navigate(e);
+  e.result={label:[e.firstChoice,action.label].filter(Boolean).join(' → '),line:action.line,spoken:true,speaker:e.id};navigate(e);
 }

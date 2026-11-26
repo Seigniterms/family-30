@@ -39,7 +39,7 @@ function dockButton(text,fn,quiet=false){
 function stageEntries(){
   const list=[];
   for(const [id,c] of Object.entries(game.contacts)){
-    if(!c.promise || game.finale) continue;
+    if(!c.promise || game.finale || c.deadline>tick()) continue;
     list.push({e:{id,type:c.waitAt==='seats'?'seated':c.plan || 'follow',previous:c.last},kind:'promise',c,
       hint:c.waitAt==='seats'?'객석에 자리 잡았어!':(c.plan==='concert'?'공연표 · ':'약속 · ')+seasons[c.deadline%4]+'까지'});
   }
@@ -72,6 +72,7 @@ function focusOn(entry){
 function acceptEntry(entry){
   if(entry.kind==='promise'){
     const c=entry.c;
+    if(!c.promise || c.deadline>tick())return;
     c.promise=false;delete c.note;delete c.waitAt;c.needsMeeting=false;c.kept=(c.kept || 0)+1;c.trust=(c.trust || 0)+1;
     c.unansweredWarning=false;
     if(c.warning==='heard') c.warning=null;
@@ -168,6 +169,14 @@ let displayedRun;
 function renderStage(){
   el('stage-hud-tools').querySelector('.stage-back')?.remove();
   if(displayedRun!==game){displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
+  const savedCall=game.event;
+  if(savedCall?.type==='outreach' && savedCall.mode==='hello' &&
+     savedCall.result?.label==='지금 통화할래?' &&
+     savedCall.result.line==='응. 잠깐 이어폰 낄게. 오늘 무슨 일 있었어?' &&
+     savedCall.result.logIndex===game.log.length-1){
+    game.log.pop();delete savedCall.result;
+    savedCall.step='talk';savedCall.firstChoice='지금 통화할래?';persist();
+  }
   if(game.event && !validStoryEvent(game.event)){game.event=null;preview=null;persist();}
   if(preview && !validStoryEvent(preview.e))preview=null;
   if(!game.event && !game.ended) prepareSeason();

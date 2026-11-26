@@ -45,6 +45,7 @@ function bookMenu(p){
   });
 }
 function personalPlanButton(id,c){
+  if(!c.promise || c.deadline>tick())return;
   const kind=c.waitAt==='seats'?'seated':c.plan || 'follow';
   const label=c.plan==='concert'?'공연장으로 가기':(planNames[c.plan] || '약속')+' 만나러 가기';
   menuButton(members[id].name+' · '+label,()=>{
@@ -67,7 +68,8 @@ function diaryVisitButton(p){
 function calendarMenu(){
   menu('내 일정');
   for(const [id,c] of Object.entries(game.contacts).filter(([,c])=>c.promise)){
-    node('p',seasonDate(c.deadline)+'까지',lifeBody);personalPlanButton(id,c);
+    node('p',seasonDate(c.deadline)+' · '+(planNames[c.plan] || '약속'),lifeBody);
+    if(c.deadline<=tick())personalPlanButton(id,c);
   }
   for(const p of game.diary){
     if(p.state==='proposal')menuButton('일정 정하기 · '+planLabel(p),()=>bookMenu(p));

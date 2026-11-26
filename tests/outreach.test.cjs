@@ -89,3 +89,24 @@ test('old NPC partnerships involving my spouse stay visible without converting t
   run("game.townPairs=[];game.season=1;progressTown()");
   assert.ok(!run("game.townPairs.some(p=>p.people.includes('2'))"));
 });
+
+test('a phone call continues after the other person asks what happened, including after reload',()=>{
+  const run=town();
+  run("game.event={type:'outreach',id:'2',mode:'hello',activity:'trip',guests:[],until:2};answer(0)");
+  assert.equal(run('game.event.step'),'talk');
+  assert.equal(run('game.event.result'),undefined);
+  assert.match(run('outreachScene(game.event).message'),/오늘 무슨 일 있었어/);
+  run('game=JSON.parse(JSON.stringify(game));answer(1)');
+  assert.match(run('game.event.result.line'),/천천히 말해도 돼/);
+  assert.equal(run("game.log.filter(x=>x.effect==='outreach').length"),1);
+});
+
+test('future appointments stay on the calendar until their season arrives',()=>{
+  const run=town();
+  run("game.contacts['2'].promise=true;game.contacts['2'].plan='follow';game.contacts['2'].deadline=1");
+  assert.equal(run("stageEntries().some(e=>e.kind==='promise' && e.e.id==='2')"),false);
+  run("calendarMenu()");
+  assert.equal(run("buttons.some(b=>b.label.includes('만나러 가기'))"),false);
+  run('game.season=1');
+  assert.equal(run("stageEntries().some(e=>e.kind==='promise' && e.e.id==='2')"),true);
+});

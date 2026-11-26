@@ -73,17 +73,24 @@ function seasonalEncounter(){
   if(game.ended || game.arrivalTick===tick())return;
   game.arrivalTick=tick();
   const queue=game.queue.filter(e=>!e.read);
-  let event=queue.find(e=>e.protected || e.type==='departure') ||
-    queue.find(e=>['photoReunion','photoWinter'].includes(e.type));
+  let event=queue.find(e=>e.protected || e.type==='departure');
+  if(!event && (upcoming().length || Object.values(game.contacts).some(c=>c.promise && c.deadline<=tick())))return;
   if(!event && !game.finale){
-    const echo=game.echoes.find(e=>e.kind==='incident' && e.due<=tick());
+    const m=pendingReunions().find(item=>(item.kind==='date' && item.choice===0) || tick()-item.when>=4);
+    if(m){
+      game.reunions=game.reunions.filter(item=>item!==m);
+      game.event={type:'reunionMail',id:m.id,people:m.people,memoryThread:m,key:'mail-'+m.key,until:tick(),spontaneous:true};
+      return;
+    }
+    event ||= queue.find(e=>['photoReunion','photoWinter'].includes(e.type));
+    const echo=!event && game.echoes.find(e=>e.kind==='incident' && e.due<=tick());
     if(echo){
       game.echoes.splice(game.echoes.indexOf(echo),1);
       game.event={...echo,spontaneous:true,key:'echo-'+tick(),until:tick()};
       return;
     }
   }
-  if(!event && tick()>0 && tick()>=(game.nextIncident ?? 2)){
+  if(!event && tick()>(game.calmThrough ?? -1) && tick()>0 && tick()>=(game.nextIncident ?? 2)){
     const people=Object.keys(game.contacts).filter(id=>!quietContact(id) && !isCut(id) && !game.contacts[id].warning);
     if(people.length){
       const id=pick(people),others=people.filter(who=>who!==id);
@@ -99,7 +106,7 @@ function seasonalEncounter(){
     }
   }
   event ||= queue.find(e=>['warning','approach','reconnect'].includes(e.type)) ||
-    queue.find(e=>isLetter(e)) || queue.find(e=>e.type==='chapter');
+    queue.find(e=>isLetter(e)) || (tick()>(game.calmThrough ?? -1) && queue.find(e=>e.type==='chapter'));
   if(event){
     game.queue=game.queue.filter(item=>item!==event);
     game.event={...event,spontaneous:true};

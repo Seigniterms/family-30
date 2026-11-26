@@ -23,7 +23,7 @@ function creditMemories(){
     const period=entries.filter(e=>e.year>=year && e.year<year+4);
     if(period.length)highlights.add(period.reduce((best,e)=>priority(e)>priority(best)?e:best));
   }
-  return entries.filter(e=>highlights.has(e));
+  return entries.filter(e=>highlights.has(e) || e.thread);
 }
 function creditPortrait(parent,id,role){
   const person=kinPerson(id),figure=node('figure','',parent,'credit-face');

@@ -175,6 +175,7 @@ const offers={
   marry:['앞으로도 네 곁에서 살고 싶어. 나랑 결혼할래?','응, 우리 결혼하자.','우리는 앞으로의 삶을 함께하기로 했다.']
 };
 function scene(e){
+  if(e.type==='reunionMail')return reunionScene(e.memoryThread,true);
   if(e.type==='incident')return incidentScene(e);
   if(snapshotEvents.includes(e.type))return snapshotScene(e);
   if(e.type==='approach')return approachScene(e);
@@ -438,6 +439,7 @@ function answer(index) {
   if(e && !e.result && ['calendarVisit','childVisit','weddingLetter'].includes(e.type)){answerPersonal(e,index);return;}
   if(e && !e.result && ['outingDay','echo'].includes(e.type)){answerLife(e,index);return;}
   if (!e || e.result) return;
+  if(e.type==='reunionMail'){finishReunion(e,index,true);return;}
   if(e.type==='incident'){handleIncident(e,index);return;}
   const {title,choices}=scene(e), c=game.contacts[e.id], action=choices[index];
   if (!action) return;

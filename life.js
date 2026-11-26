@@ -73,6 +73,7 @@ function cutPerson(id,line){
     return p.people.length && (p.kind!=='ceremony' || p.people.length===2);
   });
   game.weddings=game.weddings.filter(e=>id!==e.id && id!==e.other);
+  game.reunions=(game.reunions || []).filter(m=>!m.people.includes(id));
   game.blocked.push(id);endMarriage(id);delete game.contacts[id];
   const includes=e=>e && [e.id,e.other,e.kid,e.observer,...(e.guests || []),...(e.people || [])].includes(id);
   for(const key of ['queue','obligations','echoes','sightings','bonds'])
@@ -215,7 +216,8 @@ function weekend(){
     const newFaces=candidates.filter(id=>!returning.includes(id));
     const rotation=newFaces.length?newFaces:candidates;
     const fans=rotation.filter(id=>favorite(id)===plans[i]);
-    const id=pick(fans.length?fans:rotation);
+    const waiting=seat===0 && pendingReunions().find(m=>available.has(m.id));
+    const id=waiting?waiting.id:pick(fans.length?fans:rotation);
     rosters[i].push(id);available.delete(id);
   }
   game.weekend={when:tick(),plans,rosters,people:rosters.flat(),taken:prior?.when===tick() && prior.taken};persist();return game.weekend;

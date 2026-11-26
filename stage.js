@@ -137,7 +137,7 @@ function eventPlace(e){
 let displayedRun;
 function renderStage(){
   el('stage-hud-tools').querySelector('.stage-back')?.remove();
-  if(displayedRun!==game){kinFocus=game.kinPath?.find(id=>id!==game.player && connections(game.player).has(id)) || game.player;displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
+  if(displayedRun!==game){displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
   if(!game.event && !game.ended) prepareSeason();
   el('reset-run').hidden=game.ended;
   el('circle').hidden=!!game.event || game.ended;
@@ -147,7 +147,7 @@ function renderStage(){
   else if(!preview || browsingTopics) venue='square';
   chat.style.setProperty('--place','url(materials/stage-'+venue+'.jpg)');
   chat.style.setProperty('--light',['#ffadba10','#ffcc4b15','#fa863723','#a9d3ff38'][game.season || 0]);
-  el('stage-time').textContent=clockLabel()+' · '+places[venue];
+  el('stage-time').textContent=clockLabel()+' · '+(event?.type==='incident'?incidents[event.code].title:places[venue]);
   dock.replaceChildren(); actors.querySelector('.actor-dialogue')?.remove();
   actors.classList.toggle('focused',!!event);
   actors.classList.remove('speaking');
@@ -158,14 +158,14 @@ function renderStage(){
   if(game.ended){
     showCredits();return;
   }
-  const speaker=event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
+  const speaker=event?.type==='incident' && event.route==='group'?event.other:event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
   if(!event){
     actors.replaceChildren();
     const board=node('div','',actors,'town-board');
     drawTown(board,gathered);
     lifeDock();persist();return;
   }
-  let ids=[...new Set([speaker,game.player,...(event.guests || [])].filter(Boolean))].slice(0,3);
+  let ids=[...new Set([speaker,game.player,...(event.type==='incident'?[event.id]:(event.guests || []))].filter(Boolean))].slice(0,3);
   for(const actor of Array.from(actors.children)) if(!ids.includes(actor.dataset.id)) actor.remove();
   const spots=placeActors(ids);
   ids.forEach(id=>{
@@ -215,12 +215,12 @@ function renderStage(){
     }else photoPrint(wall,game.snapshot.frame,event.type==='photoNote' || (event.type==='photoReunion' && game.snapshot.reply===0));
     node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':members[event.id].name+(event.type==='photoWinter'?' · 사진첩':' · 개인톡'),wall,'snap-caption');
   }
-  const beat=event.result || event.type+':'+event.id+':'+(event.step || 0);
+  const beat=event.result || event.type+':'+event.id+':'+(event.route || event.step || 0);
   if(lastBeat!==beat){page=0;lastBeat=beat;}
   // Preview opens on the character's words. Opening narration is read once in committed scenes.
   const speech=event.result
     ? [...new Set([event.result.line,event.result.memory].filter(Boolean))].map(text=>({text,voice:false}))
-    : [...((!preview || ['chapter','schedule','sports','ticketChat','clash','arrival','familyNews','reconnect','follow'].includes(event.type)) && story.setup?[{text:story.setup,voice:false}]:[]),{text:story.message,voice:true}];
+    : [...((!preview || ['chapter','schedule','sports','ticketChat','clash','arrival','familyNews','reconnect','follow'].includes(event.type)) && !(event.spontaneous && isLetter(event)) && story.setup?[{text:story.setup,voice:false}]:[]),{text:story.message,voice:true}];
   const lines=speech.flatMap(part=>pages(part.text).map(text=>({...part,text})));
   const current=lines[page] || lines[0];
   const nextLine=()=>{page++;renderStage();};
@@ -269,6 +269,12 @@ function renderStage(){
       dockButton('미리 연락해 약속 미루기',()=>{
         courtesy=changeAppointment(preview.c);persist();renderStage();
       },true);
+  }
+  if(event.spontaneous && !event.protected && !event.result && !event.route && !event.step){
+    dockButton('나중에 보기',()=>{
+      const pending={...event,read:true,spontaneous:false};
+      game.queue.push(pending);game.event=null;preview=null;page=0;navigate();
+    },true);
   }
   if(preview){
     const back=node('button',topics.length>1?'‹ 대화 고르기':'‹ 주변 보기',el('stage-hud-tools'),'stage-back');

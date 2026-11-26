@@ -66,7 +66,6 @@ function cutMenu(id){
 }
 function cutPerson(id,line){
   if(isCut(id))return;
-  if(kinFocus===id)kinFocus=game.player;
   game.watching=game.watching.filter(who=>who!==id);
   game.diary=game.diary.filter(p=>{
     p.people=p.people.filter(who=>who!==id);
@@ -328,7 +327,8 @@ function passSeason(skip=false,onMove){
     do{
       advance();if(game.ended)break;
       prepareSeason();growth();
-    }while(skip && !game.finale && !needsReply() && !(game.year===30 && game.season===3));
+      seasonalEncounter();
+    }while(skip && !game.event && !game.finale && !needsReply() && !(game.year===30 && game.season===3));
     navigate();
   }
   if(promises.length || upcoming().length || (closing && game.echoes.some(e=>e.due<=tick()))){

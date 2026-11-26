@@ -1,5 +1,4 @@
 // Town relationships advance on the season clock, even when nobody opens the map.
-let kinFocus=null;
 function allChildren(){return [...game.children,...(game.townKids || [])];}
 function quietContact(id){return (game.contacts[id]?.quietUntil || 0)>tick();}
 function kinPerson(id){
@@ -158,125 +157,93 @@ function personActions(parent,id,main){
     talk.disabled=quietContact(id);
   }
 }
-function kinSheet(id,context,main){
-  const sheet=el('kin-dialog'),body=el('kin-detail'),stack=[];
-  function show(who,description,family,push=true){
-    if(isCut(who))return;
-    if(push)stack.push({who,description,family});
-    body.replaceChildren();el('kin-title').textContent=kinPerson(who).name+(family?'의 가족':'');
-    const photo=node('img','',body,'kin-detail-photo');photo.src=kinPerson(who).image;photo.alt='';
-    const child=allChildren().find(c=>c.id===who);
-    node('p',description+(child?' · '+childAge(child)+'세':''),body);
-    if(family){
-      const group=node('div','',body,'kin-branch');
-      for(const [other,roles] of connections(who)){
-        const label=kinPerson(who).name+'의 '+relationName(roles);
-        kinCard(group,other,label,()=>show(other,label,false));
-      }
-      if(!group.children.length)node('p','아직 연결된 사람이 없어요.',body);
-    }else{
-      personActions(body,who,main);
-      kinAction(body,kinPerson(who).name+'의 가족 보기',()=>show(who,description,true));
-    }
-    if(stack.length>1)kinAction(body,'‹ 이전 보기',()=>{
-      stack.pop();const last=stack.at(-1);show(last.who,last.description,last.family,false);
-    });
-    sheet.scrollTop=0;
-    if(sheet.open)el('kin-title').focus({preventScroll:true});
+function kinGroups(id){
+  const groups=new Map();
+  for(const [who,roles] of connections(id)){
+    const name=roles.includes('부모')?'부모':roles.includes('자녀')?'자녀':
+      roles.some(r=>['연인','배우자','옛 인연','옛 연인','옛 배우자'].includes(r))?'연인·배우자':'친구·지인';
+    if(!groups.has(name))groups.set(name,[]);
+    groups.get(name).push([who,roles]);
   }
-  show(id,context,false);sheet.showModal();
+  return groups;
 }
-function drawKin(container,initial,main=false,notice=null){
-  const root=game.player,relations=connections(root),cards=new Map();
+function kinSheet(first,context,main,category){
+  const sheet=el('kin-dialog'),body=el('kin-detail');
+  const stack=[{id:first,context,list:!!category,category,page:0}];
+  function draw(){
+    const view=stack.at(-1),name=kinPerson(view.id).name;
+    body.replaceChildren();
+    el('kin-title').textContent=view.list?(view.category || name+'의 가족'):name;
+    node('p',view.context,body);
+    function visit(id,context,list=false){
+      stack.push({id,context,list,page:0});draw();
+    }
+    if(view.list){
+      const rows=view.category?(kinGroups(view.id).get(view.category) || []):[...connections(view.id)];
+      const grid=node('div','',body,'kin-branch');
+      const size=6, start=view.page*size;
+      for(const [who,roles] of rows.slice(start,start+size)){
+        const label=(view.id===game.player?'내 ':name+'의 ')+relationName(roles);
+        kinCard(grid,who,label,()=>visit(who,label));
+      }
+      if(!rows.length)node('p','아직 연결된 사람이 없어요.',body);
+      if(rows.length>size){
+        const nav=node('nav','',body,'kin-pages');
+        kinAction(nav,'‹ 앞쪽',()=>{view.page--;draw();}).disabled=view.page===0;
+        node('span',(view.page+1)+' / '+Math.ceil(rows.length/size),nav);
+        kinAction(nav,'다음 ›',()=>{view.page++;draw();}).disabled=start+size>=rows.length;
+      }
+    }else{
+      const photo=node('img','',body,'kin-detail-photo');photo.src=kinPerson(view.id).image;photo.alt='';
+      const child=allChildren().find(c=>c.id===view.id);
+      if(child)node('small',childAge(child)+'세',body);
+      personActions(body,view.id,main);
+      kinAction(body,name+'의 가족 보기',()=>visit(view.id,name+'와 연결된 사람들',true));
+    }
+    if(stack.length>1)kinAction(body,'‹ 이전 보기',()=>{stack.pop();draw();});
+    sheet.scrollTop=0;
+  }
+  draw();if(!sheet.open)sheet.showModal();
+}
+function drawKin(container,main=false){
+  const root=game.player,groups=kinGroups(root);
   const head=node('header','',container,'kin-heading');
   node('strong','우리 가계도 · '+familyIds().length+'명',head);
   const chooser=node('select','',head);chooser.setAttribute('aria-label','가계도에서 인물 찾기');
-  for(const who of familyIds()){const opt=node('option',kinPerson(who).name,chooser);opt.value=who;}
-  const hero=node('div','',container,'kin-focus'),photo=node('img','',hero);
-  photo.src=kinPerson(root).image;photo.alt='';node('strong','나 · '+kinPerson(root).name,hero);
-  let panel=null,expanded=null;
-  const owner=main?actors:el('family-album');
-  function expand(id,highlight=null){
-    const card=cards.get(id);
-    const oldY=card?.getBoundingClientRect().top;
-    if(expanded)cards.get(expanded)?.setAttribute('aria-expanded','false');
-    panel?.remove();panel=null;expanded=card?id:null;chooser.value=expanded || root;
-    if(main){
-      kinFocus=expanded || root;
-      const path=expanded?[root,id]:[root];
-      if(game.kinPath?.join()!==path.join()){game.kinPath=path;persist();}
-    }
-    if(!card)return;
-    card.setAttribute('aria-expanded','true');
-    panel=document.createElement('section');panel.className='kin-expanded';
-    const siblings=Array.from(card.parentNode.children),index=siblings.indexOf(card);
-    siblings[Math.min(siblings.length-1,index-index%3+2)].after(panel);
-    const name=kinPerson(id).name,roles=relationName(relations.get(id)),child=allChildren().find(c=>c.id===id);
-    node('h4',name+' · 내 '+roles+(child?' · '+childAge(child)+'세':''),panel);
-    personActions(panel,id,main);
-    const links=node('div','',panel,'kin-branch');
-    for(const [who,labels] of connections(id)){
-      if(who===root)continue;
-      const label=name+'의 '+relationName(labels);
-      const relative=kinCard(links,who,label,()=>kinSheet(who,'내 '+roles+' '+label,main));
-      if(who===highlight)relative.classList.add('kin-highlight');
-    }
-    if(!links.children.length)links.remove();
-    owner.scrollTop+=card.getBoundingClientRect().top-oldY;
-    return panel;
+  node('option','인물 찾기',chooser).value='';
+  for(const id of familyIds())if(id!==root)node('option',kinPerson(id).name,chooser).value=id;
+  chooser.onchange=()=>{
+    const id=chooser.value;if(!id)return;
+    chooser.value='';
+    const path=kinRoute(id);
+    const label=path.slice(1).map((who,i)=>kinPerson(path[i]).name+'의 '+relationName(connections(path[i]).get(who))).join(' › ');
+    kinSheet(id,label || '동네 사람',main);
+  };
+  const hero=node('div','',container,'kin-focus');
+  const portrait=node('img','',hero);portrait.src=kinPerson(root).image;portrait.alt='';
+  node('strong','나 · '+kinPerson(root).name,hero);
+  const grid=node('div','',container,'kin-summary');
+  for(const [name,rows] of groups){
+    const card=node('button','',grid,'kin-cluster');card.type='button';
+    const faces=node('span','',card,'kin-faces');
+    for(const [id] of rows.slice(0,3)){const img=node('img','',faces);img.src=kinPerson(id).image;img.alt='';}
+    node('strong',name+' '+rows.length+'명',card);
+    node('small',rows.slice(0,2).map(([id])=>kinPerson(id).name).join(' · ')+(rows.length>2?' 외 '+(rows.length-2)+'명':''),card);
+    card.onclick=()=>rows.length===1?kinSheet(rows[0][0],'내 '+relationName(rows[0][1]),main):kinSheet(root,'나 · '+kinPerson(root).name,main,name);
   }
-  const groups=[
-    ['부모',roles=>roles.includes('부모')],['자녀',roles=>roles.includes('자녀')],
-    ['연인과 배우자',roles=>roles.some(r=>['연인','배우자','옛 인연','옛 연인','옛 배우자'].includes(r))],['친구와 지인',()=>true]
-  ];
-  let remaining=[...relations];
-  for(const [name,match] of groups){
-    const group=remaining.filter(([,roles])=>match(roles));if(!group.length)continue;
-    remaining=remaining.filter(([,roles])=>!match(roles));node('h3',name,container);
-    const row=node('div','',container,'kin-branch kin-roots');
-    for(const [who,roles] of group){
-      const card=kinCard(row,who,'내 '+relationName(roles),()=>expand(expanded===who?null:who));
-      card.setAttribute('aria-expanded','false');cards.set(who,card);
-    }
-  }
-  function reveal(id,path=kinRoute(id)){
-    if(id===root){expand(null);return;}
-    if(!path.length){chooser.value=expanded || root;kinSheet(id,'동네 사람',main);return;}
-    const branch=expand(path[1],path[2]);
-    const target=branch?.querySelector('.kin-highlight') || cards.get(path[1]);
-    target?.scrollIntoView?.({block:'nearest'});
-    if(path.length>3){
-      const description=path.slice(1).map((who,i)=>kinPerson(path[i]).name+'의 '+relationName(connections(path[i]).get(who))+' '+kinPerson(who).name).join(' › ');
-      kinSheet(id,description,main);
-    }
-  }
-  chooser.onchange=()=>reveal(chooser.value);
-  if(notice){
-    const [anchor,...rest]=notice;
-    const path=kinRoute(anchor);
-    for(const who of rest)if(path.length && connections(path.at(-1)).has(who) && !path.includes(who))path.push(who);
-    reveal(path.at(-1) || anchor,path);
-  }else if(cards.has(initial))expand(initial);
 }
-let kinNotice=null;
 function drawTown(board,entries){
+  drawKin(node('section','',board,'kin-board'),true);
+  entries=entries.filter(item=>!isLetter(item.e));
   if(entries.length){
-    const feature=entries.find(x=>x.e.protected) || entries.find(x=>['photoNote','photoReunion','photoWinter','approach'].includes(x.e.type) && !x.e.read) || entries.find(x=>isLetter(x.e) && !x.e.read);
-    if(feature){
-      const card=kinCard(board,feature.e.id,scene(feature.e).message,()=>focusOn(feature));
-      card.classList.add('featured-letter');
-    }
     const invitations=node('div','',board,'town-invitations');
     for(const id of new Set(entries.map(x=>x.e.id))){
-      const topics=entries.filter(x=>x.e.id===id && x!==feature);
+      const topics=entries.filter(x=>x.e.id===id);
       if(!topics.length)continue;
-      const letters=topics.filter(item=>item.kind==='event' && isLetter(item.e) && !item.e.read);
       const appointment=topics.find(item=>item.kind==='promise');
-      const entry=letters[0] || appointment || topics[0];
-      const activity=appointment?(appointment.c.plan==='concert'?'공연장 가기':(planNames[appointment.c.plan] || '약속')+' 만나러 가기'):'';
-      const hint=letters.length?scene(entry.e).message:activity || entry.hint || '말 걸기';
+      const entry=appointment || topics[0];
+      const hint=appointment?(appointment.c.plan==='concert'?'공연장 가기':(planNames[appointment.c.plan] || '약속')+' 만나러 가기'):entry.hint || '말 걸기';
       kinCard(invitations,id,hint,()=>{
-        if(letters.length){venue=eventPlace(entry.e);focusOn(entry);return;}
         preview=entry;courtesy=null;browsingTopics=true;page=0;lastBeat=null;renderStage();
       });
     }
@@ -303,13 +270,14 @@ function drawTown(board,entries){
           const direct=connections(game.player);
           const relevant=item.people.filter(id=>direct.has(id));
           const anchor=relevant.find(id=>direct.get(id).some(role=>['연인','옛 연인','옛 인연','배우자','옛 배우자','자녀'].includes(role))) || relevant.find(id=>game.watching.includes(id)) || relevant[0] || item.people[0];
-          kinNotice=[anchor,item.people.at(-1)===anchor?item.people[0]:item.people.at(-1)];renderStage();
+          const who=item.people.at(-1)===anchor?item.people[0]:item.people.at(-1);
+          renderStage();kinSheet(who,item.title+' · '+kinPerson(anchor).name+'와 '+kinPerson(who).name,true);
         });
         node('p',item.text,lifeBody);
       }
       n.read=true;persist();renderStage();
     };
   }
-  drawKin(node('section','',board,'kin-board'),kinFocus,true,kinNotice);kinNotice=null;
+
 }
 function townSpouse(id){return game.townPairs?.some(p=>p.status==='배우자' && !p.end && p.people.includes(id));}

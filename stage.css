@@ -123,3 +123,12 @@
 .town-board>.featured-letter{width:100%;margin-bottom:5px}.town-board>.featured-letter img{width:46px;height:46px}.town-invitations:empty{display:none}
 .snap-pick{flex:1;min-width:0;padding:0;border:0;background:transparent;cursor:pointer}
 .snap-pick:focus-visible{outline:3px solid #ffc85e;outline-offset:5px}
+.kin-board .kin-focus{flex-direction:row;margin:4px auto;gap:6px}
+.kin-board .kin-focus img{width:32px;height:32px}
+.kin-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.kin-cluster{display:grid;grid-template-columns:auto 1fr;align-items:center;text-align:left;gap:1px 5px;padding:4px;min-height:44px;background:#fff0ce;color:#472e3a;border:1px solid #ceac7d;border-radius:9px}
+.kin-cluster:only-child{grid-column:1/-1}
+.kin-faces{display:flex;grid-row:span 2;padding-left:4px}.kin-faces img{width:22px;height:22px;object-fit:cover;margin-left:-5px;border:1px solid #fff7df;border-radius:50%}
+.kin-cluster strong{font-size:13px}.kin-cluster small{font-size:11px;line-height:1.2;overflow-wrap:anywhere}
+.kin-pages{display:flex;align-items:center;justify-content:space-between}
+#kin-dialog{box-sizing:border-box;max-height:96dvh}.kin-pages button,#kin-detail .kin-card{min-height:44px}

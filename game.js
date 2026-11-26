@@ -175,6 +175,7 @@ const offers={
   marry:['앞으로도 네 곁에서 살고 싶어. 나랑 결혼할래?','응, 우리 결혼하자.','우리는 앞으로의 삶을 함께하기로 했다.']
 };
 function scene(e){
+  if(e.type==='incident')return incidentScene(e);
   if(snapshotEvents.includes(e.type))return snapshotScene(e);
   if(e.type==='approach')return approachScene(e);
   if(['calendarVisit','childVisit','weddingLetter'].includes(e.type))return personalScene(e);
@@ -437,6 +438,7 @@ function answer(index) {
   if(e && !e.result && ['calendarVisit','childVisit','weddingLetter'].includes(e.type)){answerPersonal(e,index);return;}
   if(e && !e.result && ['outingDay','echo'].includes(e.type)){answerLife(e,index);return;}
   if (!e || e.result) return;
+  if(e.type==='incident'){handleIncident(e,index);return;}
   const {title,choices}=scene(e), c=game.contacts[e.id], action=choices[index];
   if (!action) return;
   if(snapshotEvents.includes(e.type))snapshotAnswer(e,index);
@@ -604,7 +606,7 @@ function fillAlbum() {
   }
   if(canEndEarly())control(box,'지금 엔딩 보기',earlyEndingMenu);
   const board=node('div','',box,'kin-board');
-  drawKin(board,game.player);
+  drawKin(board);
   if(game.ended) {
     const epilogue=ending(game);
     node('h2',epilogue.title,box);

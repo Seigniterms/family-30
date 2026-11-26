@@ -137,7 +137,7 @@ function eventPlace(e){
 let displayedRun;
 function renderStage(){
   el('stage-hud-tools').querySelector('.stage-back')?.remove();
-  if(displayedRun!==game){kinFocus=game.kinPath?.filter(id=>!isCut(id)).at(-1) || game.player;displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
+  if(displayedRun!==game){kinFocus=game.kinPath?.find(id=>id!==game.player && connections(game.player).has(id)) || game.player;displayedRun=game;preview=null;gathered=[];page=0;lastBeat=null;}
   if(!game.event && !game.ended) prepareSeason();
   el('reset-run').hidden=game.ended;
   el('circle').hidden=!!game.event || game.ended;

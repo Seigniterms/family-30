@@ -80,9 +80,6 @@
 .kin-card img{width:38px;height:38px;object-fit:cover;border-radius:50%}
 .kin-card small{font-size:11px;word-break:keep-all}.kin-card strong{font-size:14px}
 .town-news{border:1px solid #cead78;border-radius:10px;background:#462c44;color:#fff0d4;padding:8px;font:inherit;font-size:13px}
-.kin-trail{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:8px 0}
-.kin-trail button{font:inherit;font-size:13px;color:#553448;background:#fff0ce;border:1px solid #cfad7c;padding:4px 7px;border-radius:8px}
-.kin-trail button:disabled{color:#573e3b;background:transparent;border-color:transparent}
 .guest-status{position:sticky;top:0;z-index:1;padding:8px;background:#fff2d5;border-bottom:1px solid #c5a578}
 
 #first-chat.play-stage.in-credits{background:linear-gradient(180deg,#201524e8,#3e2838dc 60%,#261a25ed),url(materials/stage-home.jpg) center/cover}
@@ -104,3 +101,12 @@
 .credit-reel{padding-top:clamp(35px,13dvh,110px);padding-bottom:clamp(44px,17dvh,140px)}
 .credit-reel .credit-group{padding-bottom:12px}
 .credit-reel{min-height:calc(100% + 100px)}
+.kin-roots,.kin-expanded .kin-branch,#kin-detail .kin-branch{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kin-card[aria-expanded="true"],.kin-highlight{outline:2px solid #914b28;outline-offset:-2px;background:#ffe2a2}
+.kin-expanded{grid-column:1/-1;background:#fff0cb;border:1px solid #ceaa76;border-radius:12px;padding:8px}
+.kin-expanded h4{margin:2px 0 6px;font-size:15px}
+.kin-expanded .town-news,#kin-detail .town-news{margin:3px}
+#kin-dialog{width:min(92vw,410px);max-height:80dvh;overflow:auto;border:2px solid #cfab7c;border-radius:18px;background:#fff5df;color:#462c3a;padding:14px;text-align:center}
+#kin-dialog::backdrop{background:#25162799}
+#kin-dialog form{text-align:right}#kin-dialog form button{cursor:pointer;padding:8px;border-radius:10px;color:white;background:#462c44}
+#kin-title{margin:8px;font-size:20px}.kin-detail-photo{height:72px;width:72px;object-fit:cover;border-radius:50%}

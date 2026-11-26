@@ -601,6 +601,7 @@ function fillAlbum() {
   for(const entry of visibleLog) node('p',logText(entry),timeline);
 }
 function renderGame() {
+  if(el('kin-dialog').open)el('kin-dialog').close();
   if(lifeMenu.open)lifeMenu.close();
   const [route,query]=location.hash.slice(1).split('?');
   const play=['first-chat','family-tree'].includes(route);

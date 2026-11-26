@@ -1,7 +1,7 @@
 // Persistent play systems shared by the neighbourhood, story scenes and album.
 const lifeMenu=el('life-menu'), lifeBody=el('life-body');
 function storedList(key){
-  try {const data=JSON.parse(localStorage.getItem(key));return Array.isArray(data)?data:[];} catch{return [];}
+  try {const data=readFamilySave(localStorage.getItem(key));return Array.isArray(data)?data:[];} catch{return [];}
 }
 const goals={
   '동창들의 아지트':{brief:'서로 다른 친구 셋을 초대해 동창회를 열어요.',reward:'오랜만의 출석부',line:'옛날 출석번호로 서로를 부르다가 다 같이 빵 터졌다.'},
@@ -258,10 +258,10 @@ function reserve(i,guests,confirmed=false){
       menu('여럿이 만나는 번개');node('p',members[id].name+'와는 다른 멤버도 함께 초대해요.',lifeBody);
       menuButton('멤버 더 고르기',()=>guestMenu(i,guests));return;
     }
-    menu('둘만 가는 대벙이에요');
+    menu('둘만 가는 데벙이에요');
     if(declined.length)node('p',declined.map(id=>members[id].name).join(' · ')+' 멤버는 이번에 쉬기로 했어요.',lifeBody);
-    node('p',members[id].name+'와 단둘이 만나는 데이트 번개예요. 둘이서 갈까요?',lifeBody);
-    menuButton('좋아, 대벙으로 출발',()=>reserve(i,guests,true));menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
+    node('p',members[id].name+'와 단둘이 만나는 데이트벙개예요. 둘이서 갈까요?',lifeBody);
+    menuButton('좋아, 데벙으로 출발',()=>reserve(i,guests,true));menuButton('멤버 다시 고르기',()=>guestMenu(i,guests));return;
   }
   const others=weekendRoster(w,1-i).filter(id=>!quietContact(id) && !game.contacts[id]?.warning);
   if(others.length>=2){
@@ -284,7 +284,7 @@ function hosts(){
   }
   const w=weekend();menu('토요일, 어디로 갈까?');
   node('p',game.club.goal+' · '+goals[game.club.goal].brief,lifeBody);
-  node('p','같이 갈 멤버를 한 명 이상 골라요. 단둘이 만나면 대벙이에요.',lifeBody);
+  node('p','같이 갈 멤버를 한 명 이상 골라요. 단둘이 만나면 데이트벙개, 줄여서 데벙이에요.',lifeBody);
   w.plans.forEach((key,i)=>{
     const roster=weekendRoster(w,i);
     menuButton(outings[key].title+' · '+(roster.map(id=>members[id].name).join(' · ') || '참석자 없음'),()=>guestMenu(i));

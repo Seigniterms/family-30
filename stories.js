@@ -171,7 +171,7 @@ function availableChapter(story,g){
 function selectChapter(g){
   function cast(story){
     let ids=Object.keys(g.contacts).filter(id=>!isCut(id) && !quietContact(id));
-    if(story.code==='relationship-19')ids=ids.filter(id=>g.log.some(e=>e.id===id && (['conflict','split','dismiss'].includes(e.effect) || e.effect==='meetup' && ['비 오는 대벙','대벙에서 터진 말다툼'].includes(e.title))) || g.reunions?.some(m=>m.id===id && m.kind==='argument'));
+    if(story.code==='relationship-19')ids=ids.filter(id=>g.log.some(e=>e.id===id && (['conflict','split','dismiss'].includes(e.effect) || e.effect==='meetup' && ['비 오는 데벙','데벙에서 터진 말다툼'].includes(e.title))) || g.reunions?.some(m=>m.id===id && m.kind==='argument'));
     return ids;
   }
   const pool=library.filter(s=>availableChapter(s,g) && (s.group!=='relationship' || cast(s).length));

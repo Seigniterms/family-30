@@ -3,9 +3,13 @@ const members = Object.fromEntries(Array.from(portraits, card => [card.dataset.i
 }]));
 const originalMembers=Object.keys(members);
 const saveKey = 'family30.run.v2';
+function readFamilySave(raw){
+  return JSON.parse(raw,(_key,value)=>typeof value==='string' && value.includes('대벙')
+    ? value.replaceAll('대벙','데벙') : value);
+}
 let game = null;
 try {
-  const saved = JSON.parse(localStorage.getItem(saveKey) ?? localStorage.getItem('family30.run.v1'));
+  const saved = readFamilySave(localStorage.getItem(saveKey) ?? localStorage.getItem('family30.run.v1'));
   for(const [id,child] of Object.entries(saved?.newMembers || {}))if(id.startsWith('born-') && members[child.face])members[id]={...members[child.face],name:child.name};
   if ([1,2].includes(saved?.version) && members[saved.player] && Array.isArray(saved.log) && saved.contacts && Array.isArray(saved.marriages) && Array.isArray(saved.children) && Number.isInteger(saved.year) && Object.keys(saved.contacts).every(id=>members[id] && saved.contacts[id]) && (!saved.event || members[saved.event.id])) game = {...saved,version:2};
 } catch {}

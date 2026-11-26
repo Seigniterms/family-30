@@ -146,27 +146,19 @@ function endingExport(){
     try{
       const album=await buildEndingImage();if(!active())return;
       const indices=Array.from({length:album.count},(_,i)=>i);
-      status.textContent='전체 기록은 한 장의 SVG로 저장할 수 있어요. 사진첩과 메신저용 PNG는 '+album.count+'장입니다.';
-      download(album.svg(indices),album.name+'.svg','전체 기록 이미지 저장 · SVG');
-      const button=node('button','공유용 PNG 준비',lifeBody,'start-button');
-      button.onclick=async()=>{
-        button.disabled=true;const files=[];
-        try{
-          for(const i of indices){status.textContent='PNG 준비 중 · '+(i+1)+' / '+indices.length;files.push(await albumPng(album,i));if(!active())return;}
-          if(files.length>1){
-            const bundle=await pngBundle(files);if(!active())return;
-            download(bundle,album.name+'.zip','전체 PNG 한 번에 저장 · ZIP');
-          }
-          status.textContent='1440 × 1920 PNG · '+files.length+'장';
-          if(navigator.canShare?.({files}))menuButton('엔딩 이미지 공유',async()=>{
-            try{await navigator.share({files,title:album.name});}
-            catch(err){if(err.name!=='AbortError')status.textContent='아래 이미지를 저장해서 공유해 주세요.';}
-          });
-          files.forEach((file,i)=>download(file,file.name,files.length===1?'PNG 저장':(i+1)+'쪽 PNG 저장'));
-          button.remove();
-        }catch{if(active()){status.textContent='PNG를 준비하지 못했어요. 다시 시도해 주세요.';button.disabled=false;}}
-      };
-    }catch{if(active()){status.textContent='사진을 불러오지 못했어요. 연결을 확인해 주세요.';menuButton('다시 준비하기',endingExport);}}
+      const files=[];
+      for(const i of indices){status.textContent='PNG 준비 중 · '+(i+1)+' / '+indices.length;files.push(await albumPng(album,i));if(!active())return;}
+      if(files.length>1){
+        const bundle=await pngBundle(files);if(!active())return;
+        download(bundle,album.name+'.zip','전체 PNG 한 번에 저장 · ZIP');
+      }
+      status.textContent='1440 × 1920 PNG · '+files.length+'장';
+      if(navigator.canShare?.({files}))menuButton('엔딩 이미지 공유',async()=>{
+        try{await navigator.share({files,title:album.name});}
+        catch(err){if(err.name!=='AbortError')status.textContent='아래 이미지를 저장해서 공유해 주세요.';}
+      });
+      files.forEach((file,i)=>download(file,file.name,files.length===1?'PNG 저장':(i+1)+'쪽 PNG 저장'));
+    }catch{if(active()){status.textContent='엔딩 이미지를 준비하지 못했어요. 다시 시도해 주세요.';menuButton('다시 준비하기',endingExport);}}
   }
   prepare();
 }

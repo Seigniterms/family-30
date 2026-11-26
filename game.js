@@ -268,6 +268,10 @@ function missed(c){
   if(c.warning==='heard' || (partner(c) && c.unansweredWarning)) c.warning='final';
   else if(!c.warning) c.warning='new';
 }
+function completeRun(){
+  if(game.ended)return;
+  game.ended=true;archiveRun();
+}
 function advance(){
   if(game.ended) return;
   game.season ??= 0;
@@ -309,7 +313,7 @@ function advance(){
   }
   expirePlans();
   if(game.season===3){
-    if(game.year===30){game.ended=true;archiveRun();return;}
+    if(game.year===30){completeRun();return;}
     game.year++; game.season=0;
   } else game.season++;
   progressTown();
@@ -508,7 +512,7 @@ function answer(index) {
   if(c && partner(c) && (c.pauseKind || c.response?.kind)==='marry' &&
      (e.type==='reconnect' || e.type==='couple' || e.type==='anniversary') &&
      !['no','later','memory'].includes(action.effect) && (action.effect!=='dinnerPromise')) c.needsMeeting=false;
-  if(c && game.diary.some(p=>p.state==='proposal' && p.people.includes(e.id)) && ['promise','dinnerPromise','bookConcert','repair'].includes(action.effect)){
+  if(e.planChoice && game.diary.some(p=>p.kind===e.planChoice.kind && p.state==='proposal' && p.people.includes(e.id)) && ['promise','dinnerPromise','bookConcert','repair'].includes(action.effect)){
     memory=action.line='먼저 잡은 약속이 있어. 내 일정에서 만날 날을 다시 고르자.';
   }
   if(c) c.last=memory;
@@ -561,13 +565,14 @@ function fillAlbum() {
   const box=el('family-content'); box.replaceChildren();
 
   node('p',clockLabel(),box);
-  node('h1',game.ended?'우리 가족의 30년':'내 가계도',box,'selection-title');
+  node('h1',game.ended?(tick()===119?'우리 가족의 30년':'우리 가족의 이야기'):'내 가계도',box,'selection-title');
+  if(canEndEarly())control(box,'지금 엔딩 보기',earlyEndingMenu);
   const board=node('div','',box,'kin-board');
   drawKin(board,game.player);
   if(game.ended) {
     const epilogue=ending(game);
     node('h2',epilogue.title,box);
-    node('p',members[game.player].name+'의 30년 · '+epilogue.tags.join(' · '),box);
+    node('p',members[game.player].name+' · '+clockLabel()+' · '+epilogue.tags.join(' · '),box);
     const companion=Object.keys(game.contacts).sort((a,b)=>game.log.filter(e=>e.id===b).length-game.log.filter(e=>e.id===a).length)[0];
     if(companion) node('p','내 연표에 가장 자주 등장한 사람은 '+members[companion].name+'였다.',box);
     node('h3','기억에 남은 순간',box);

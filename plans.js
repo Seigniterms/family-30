@@ -11,9 +11,16 @@ function proposePlan(kind,people){
   people=[...new Set(people)].filter(id=>!isCut(id));
   if(!people.length)return;
   const exists=game.diary.find(p=>p.kind===kind && p.people.length===people.length && people.every(id=>p.people.includes(id)));
+  if(game.event && !game.event.result)game.event.planChoice={kind,people};
   if(exists)return exists;
   const plan={kind,people,due:Math.min(119,tick()+1),state:'proposal'};
   game.diary.push(plan);return plan;
+}
+function updatePlanResult(p,message){
+  const choice=game.event?.planChoice;
+  if(game.event?.result && choice?.kind===p.kind && p.people.length===choice.people.length && p.people.every(id=>choice.people.includes(id))){
+    game.event.result.line=message;game.event.result.memory=message;game.event.result.spoken=false;
+  }
 }
 function bookMenu(p){
   menu(planLabel(p));const date=Math.max(tick(),p.due),other=plansAt(date);
@@ -27,32 +34,44 @@ function bookMenu(p){
       if(first.state==='booked')first.due=available;
       else game.contacts[first.people[0]].deadline=available;
       p.state='booked';p.due=date;remember(game.player,'결혼식 날의 일정',planLabel(first)+' 날짜를 '+seasonDate(available)+'로 다시 잡았다.','reschedule',first.people);
-      persist();calendarMenu();
+      updatePlanResult(p,seasonDate(p.due)+'에 만나기로 했다.');persist();calendarMenu();
     });
   }
   if(available<=119 && (p.kind!=='ceremony' || !other.length))menuButton(seasonDate(available)+'에 약속 확정',()=>{
-    p.state='booked';p.due=available;persist();calendarMenu();
+    p.state='booked';p.due=available;updatePlanResult(p,seasonDate(p.due)+'에 만나기로 했다.');persist();calendarMenu();
   });
   menuButton(other.length?'먼저 잡은 약속만 지키기':'이번에는 사양하기',()=>{
-    game.diary=game.diary.filter(item=>item!==p);persist();calendarMenu();
+    game.diary=game.diary.filter(item=>item!==p);updatePlanResult(p,'이번 약속은 사양했다.');persist();calendarMenu();
+  });
+}
+function personalPlanButton(id,c){
+  const kind=c.waitAt==='seats'?'seated':c.plan || 'follow';
+  const label=c.plan==='concert'?'공연장으로 가기':(planNames[c.plan] || '약속')+' 만나러 가기';
+  menuButton(members[id].name+' · '+label,()=>{
+    const e={id,type:kind,previous:c.last};
+    if(game.event?.result){game.event=null;persist();}
+    closeMenu();venue=eventPlace(e);focusOn({kind:'promise',c,e});
+  });
+}
+function diaryVisitButton(p){
+  menuButton('만나러 가기 · '+planLabel(p),()=>{
+    game.diary=game.diary.filter(item=>item!==p);
+    const special=['groupMeal','childMeal','ceremony'].includes(p.kind);
+    if(!special){
+      const c=game.contacts[p.people[0]];
+      if(c){c.kept=(c.kept || 0)+1;c.trust=(c.trust || 0)+1;c.needsMeeting=false;}
+    }
+    enterScene({type:special?'calendarVisit':p.kind,id:members[p.people[0]]?p.people[0]:game.player,people:p.people,kind:p.kind});
   });
 }
 function calendarMenu(){
   menu('내 일정');
   for(const [id,c] of Object.entries(game.contacts).filter(([,c])=>c.promise)){
-    node('p',seasonDate(c.deadline)+'까지 · '+planLabel({people:[id],kind:c.plan}),lifeBody);
+    node('p',seasonDate(c.deadline)+'까지',lifeBody);personalPlanButton(id,c);
   }
   for(const p of game.diary){
     if(p.state==='proposal')menuButton('일정 정하기 · '+planLabel(p),()=>bookMenu(p));
-    else if(p.due<=tick())menuButton('만나러 가기 · '+planLabel(p),()=>{
-      game.diary=game.diary.filter(item=>item!==p);
-      const special=['groupMeal','childMeal','ceremony'].includes(p.kind);
-      if(!special){
-        const c=game.contacts[p.people[0]];
-        if(c){c.kept=(c.kept || 0)+1;c.trust=(c.trust || 0)+1;c.needsMeeting=false;}
-      }
-      enterScene({type:special?'calendarVisit':p.kind,id:members[p.people[0]]?p.people[0]:game.player,people:p.people,kind:p.kind});
-    });
+    else if(p.due<=tick())diaryVisitButton(p);
     else node('p',seasonDate(p.due)+' · '+planLabel(p),lifeBody);
   }
   menuButton('돌아가기',closeMenu);

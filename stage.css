@@ -53,7 +53,7 @@
 #life-body{clear:both;display:grid;gap:8px}
 #life-body .start-button{width:100%;margin:0;font-size:15px;min-height:42px;padding:8px 12px}
 #life-body p{margin:2px 0;line-height:1.55}
-.invitee,.future-cut,.exit-line{padding:10px;background:#ffebc3;border-radius:10px}
+.invitee,.exit-line{padding:10px;background:#ffebc3;border-radius:10px}
 #stage-dock{max-height:55dvh;overflow:auto}
 .run-goal{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0;color:#513744;font-weight:700}.run-goal select{font:inherit;max-width:65%;padding:5px 8px;border-radius:8px;background:#fff3ce}
 .exit-shot{position:relative;display:grid;place-items:center;margin:0;padding:14px;background:repeating-conic-gradient(from 25deg at 50% 55%,#ffe094 0deg 14deg,#ffca87 15deg 24deg);border-radius:14px;overflow:hidden}

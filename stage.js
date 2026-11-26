@@ -64,7 +64,9 @@ function stageEntries(){
   }
   return visible;
 }
+function isLetter(e){return ['proposal','warning','departure','reconnect'].includes(e.type);}
 function focusOn(entry){
+  if(entry?.kind==='event' && isLetter(entry.e)){entry.e.read=true;persist();}
   preview=entry;courtesy=null;browsingTopics=false;page=0;lastBeat=null;renderStage();
 }
 function acceptEntry(entry){
@@ -218,7 +220,12 @@ function renderStage(){
     const effect=game.log.at(-1)?.effect;
     const c=game.contacts[event.id];
     let change='';
-    if(c?.promise && ['promise','bookConcert','dinnerPromise','repair'].includes(effect))
+    const chosen=event.planChoice;
+    const actual=chosen && game.diary.find(p=>p.kind===chosen.kind && p.people.length===chosen.people.length && chosen.people.every(id=>p.people.includes(id)));
+    if(chosen){
+      change=planLabel(chosen)+' · '+(!actual?'사양함':actual.state==='proposal'?'날짜 미정':seasonDate(actual.due)+' 확정');
+      if(actual?.state==='proposal')dockButton('날짜 고르기',()=>bookMenu(actual));
+    }else if(c?.promise && ['promise','bookConcert','dinnerPromise','repair'].includes(effect))
       change=(c.plan==='concert'?'공연표':'약속')+' · '+members[event.id].name+' · '+seasons[c.deadline%4];
     if(['date','marry','split'].includes(effect)) change=members[event.id].name+' · '+c.role;
     if(change) node('small',change,dock,'stage-change');
@@ -249,4 +256,5 @@ function renderStage(){
     back.onclick=()=>{if(topics.length>1){browsingTopics=true;renderStage();}else focusOn(null);};
   }
 }
+lifeMenu.addEventListener('close',()=>{if(game?.event?.result && game.event.planChoice)renderStage();});
 showCurrentScreen();

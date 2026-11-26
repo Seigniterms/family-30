@@ -550,7 +550,7 @@
       const query = event.target.value.trim();
       let matches = 0;
       for (const card of portraits) {
-        card.hidden = storedList('family30.excluded').includes(card.dataset.id) || !card.dataset.name.includes(query);
+        card.hidden = !card.dataset.name.includes(query);
         if (!card.hidden) matches++;
         if (card.hidden && card.getAttribute('aria-pressed') === 'true') {
           card.setAttribute('aria-pressed', 'false');

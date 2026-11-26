@@ -171,8 +171,14 @@ function drawTown(board,entries){
   if(entries.length){
     const invitations=node('div','',board,'town-invitations');
     for(const id of new Set(entries.map(x=>x.e.id))){
-      const topics=entries.filter(x=>x.e.id===id),entry=topics[0];
-      kinCard(invitations,id,entry.hint || '말 걸기',()=>{
+      const topics=entries.filter(x=>x.e.id===id);
+      const letters=topics.filter(item=>item.kind==='event' && isLetter(item.e) && !item.e.read);
+      const appointment=topics.find(item=>item.kind==='promise');
+      const entry=letters[0] || appointment || topics[0];
+      const activity=appointment?(appointment.c.plan==='concert'?'공연장 가기':(planNames[appointment.c.plan] || '약속')+' 만나러 가기'):'';
+      const hint=letters.length?['새 연락 '+letters.length,activity].filter(Boolean).join(' · '):activity || entry.hint || '말 걸기';
+      kinCard(invitations,id,hint,()=>{
+        if(letters.length){venue=eventPlace(entry.e);focusOn(entry);return;}
         preview=entry;courtesy=null;browsingTopics=true;page=0;lastBeat=null;renderStage();
       });
     }
@@ -185,13 +191,20 @@ function drawTown(board,entries){
   const recent=(game.townNews || []).filter(n=>!n.people.some(isCut));
   if(recent.length){
     const important=item=>item.people.some(id=>game.watching.includes(id));
-    const sorted=[...recent].reverse().sort((a,b)=>Number(important(b))-Number(important(a)));
-    const n=sorted[0], announcement=node('button',(important(n)?'★ ':'')+n.people.slice(0,2).map(id=>kinPerson(id).name).join(' · ')+'  ─  '+n.title,board,'town-news');
-    announcement.onclick=()=>{menu('동네 소식');for(const item of sorted){
-      menuButton(item.people.map(id=>kinPerson(id).name).join(' · ')+' / '+item.title,()=>{
-        closeMenu();kinFocus=item.people.at(-1);game.kinPath=[game.player];renderStage();
-      });node('p',(Math.floor(item.when/4)+1)+'년 차 '+seasons[item.when%4]+' · '+item.text,lifeBody);
-    }};
+    const sorted=[...recent].reverse().sort((a,b)=>Number(!!a.read)-Number(!!b.read) || b.when-a.when || Number(important(b))-Number(important(a)));
+    const n=sorted[0];
+    const prefix=item=>[important(item)?'★':'',item.read?'읽음':'새 소식',seasonDate(item.when)].filter(Boolean).join(' · ');
+    const announcement=node('button',prefix(n)+' · '+n.people.slice(0,2).map(id=>kinPerson(id).name).join(' · ')+' ─ '+n.title,board,'town-news');
+    announcement.onclick=()=>{
+      menu('동네 소식');
+      for(const item of sorted){
+        menuButton(prefix(item)+' · '+item.people.map(id=>kinPerson(id).name).join(' · ')+' / '+item.title,()=>{
+          item.read=true;persist();closeMenu();kinFocus=item.people.at(-1);game.kinPath=[game.player];renderStage();
+        });
+        node('p',item.text,lifeBody);
+      }
+      n.read=true;persist();renderStage();
+    };
   }
   drawKin(node('section','',board,'kin-board'),kinFocus,true);
 }

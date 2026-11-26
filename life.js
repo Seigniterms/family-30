@@ -15,7 +15,7 @@ function goalProgress(club){
 }
 const households=['동창들의 아지트','한 지붕 작업실','골목 야식회'];
 function initLife(){
-  if(!game.blocked) game.blocked=storedList('family30.excluded').filter(id=>id!==game.player && !game.contacts[id] && !game.children.some(c=>c.id===id));
+  game.blocked ||= [];
   game.diary ||= [];game.weddings ||= [];game.watching ||= [];
   game.echoes ||= []; game.bonds ||= []; game.club ||= {visits:0,tracks:{},guests:{},goal:households[game.seed%3]};
   game.runId ||= crypto.randomUUID();
@@ -46,32 +46,26 @@ const exits=[
  ['밥상을 엎는다','밥상이 벌떡 섰다. 계란말이가 마지막까지 접시 위를 굴렀다.'],
  ['김치 싸대기를 날린다','김치가 철썩! 단체사진 타이머는 하필 그 순간에 터졌다.'],
  ['옷을 찢어버린다','부욱! 단체 티셔츠의 ‘영원히 함께’가 두 동강 났다.'],
- ['단톡방에서 퇴장한다','마지막 인사를 쓰다 지우고 조용히 방을 나왔다.'],
+ ['단톡방에서 강퇴시킨다','내보내기를 눌렀다. 상대 프로필이 사라지고 단톡방 인원이 한 명 줄었다.'],
  ['마지막 편지를 건넨다','접은 편지를 건네고 먼저 자리에서 일어났다.']
 ];
 function cutMenu(id){
   if(!id || id===game.player || isCut(id))return;
   menu(members[id].name+'와 관계 정리');
-  node('p','절교하면 이번 30년 동안 다시 마주치지 않아요. 함께 잡은 약속도 정리돼요.',lifeBody);
+  node('p','절교하면 이번 회차가 끝날 때까지 다시 마주치지 않아요. 함께 잡은 약속도 정리돼요.',lifeBody);
   if(partner(game.contacts[id] || {})) menuButton('이별만 이야기하기',()=>enterScene({type:'farewell',id}));
   menuButton('절교하기',()=>{
     menu('어떻게 끝낼까?');
     for(const [label,line] of exits)menuButton(label,()=>{
       menu(label);node('p',line,lifeBody,'exit-line');
       node('p',members[id].name+'와 절교할까요? 이 회차에서는 다시 만날 수 없어요.',lifeBody);
-      const labelEl=node('label','',lifeBody,'future-cut'), box=node('input','',labelEl);box.type='checkbox';
-      labelEl.append(' 다음 회차에서도 만나지 않기');
-      menuButton('절교 확정',()=>cutPerson(id,line,box.checked));
+      menuButton('절교 확정',()=>cutPerson(id,line));
       menuButton('다시 고르기',()=>cutMenu(id));
     });
   });
 }
-function cutPerson(id,line,forever){
+function cutPerson(id,line){
   if(isCut(id))return;
-  if(forever){
-    try{localStorage.setItem('family30.excluded',JSON.stringify([...new Set([...storedList('family30.excluded'),id])]))}
-    catch{node('p','다음 회차 설정을 저장할 공간이 부족해요.',lifeBody);return;}
-  }
   if(kinFocus===id)kinFocus=game.player;
   game.watching=game.watching.filter(who=>who!==id);
   game.diary=game.diary.filter(p=>{
@@ -200,22 +194,38 @@ function answerLife(e,index){
   e.result={label:a.label,line:memory,memory};navigate();
 }
 function weekend(){
-  if(game.weekend?.when===tick())return game.weekend;
-  const familiar=Object.keys(game.contacts),fresh=unused();
-  const people=[];for(const pool of [familiar,fresh,familiar,fresh]){
-    const options=pool.filter(id=>!people.includes(id));if(options.length)people.push(pick(options));
-  }
+  const prior=game.weekend;
+  if(prior?.when===tick() && Array.isArray(prior.rosters))return prior;
   const kinds=Object.keys(outings);
   const recent=game.log.filter(e=>e.effect==='outingDay').slice(-2).map(e=>e.title);
   const opening={'동창들의 아지트':'trip','한 지붕 작업실':'shoot','골목 야식회':'dinner'};
   const first=tick()===0?opening[game.club.goal]:pick(kinds.filter(k=>!recent.includes(outings[k].title)));
-  game.weekend={when:tick(),people,plans:[first,pick(kinds.filter(k=>k!==first))]};persist();return game.weekend;
+  const plans=prior?.when===tick()?prior.plans:[first,pick(kinds.filter(k=>k!==first))];
+  const rosters=[[],[]],available=new Set([...Object.keys(game.contacts),...unused()]);
+  for(let seat=0;seat<8 && available.size;seat++){
+    const i=seat%2,pool=[...available];
+    const familiar=pool.filter(id=>game.contacts[id] && !quietContact(id));
+    const poolForSeat=seat<2 && familiar.length?familiar:pool.filter(id=>!quietContact(id));
+    const candidates=poolForSeat.length?poolForSeat:pool;
+    const returning=prior?.when!==tick()?prior?.rosters?.[prior.plans.indexOf(plans[i])] || []:[];
+    const newFaces=candidates.filter(id=>!returning.includes(id));
+    const rotation=newFaces.length?newFaces:candidates;
+    const fans=rotation.filter(id=>favorite(id)===plans[i]);
+    const id=pick(fans.length?fans:rotation);
+    rosters[i].push(id);available.delete(id);
+  }
+  game.weekend={when:tick(),plans,rosters,people:rosters.flat(),taken:prior?.when===tick() && prior.taken};persist();return game.weekend;
+}
+function weekendRoster(w,i){
+  const available=new Set([...Object.keys(game.contacts),...unused()]);
+  return w.rosters[i].filter(id=>available.has(id) && !isCut(id));
 }
 function reserve(i,guests){
   const w=weekend();if(w.taken || game.event)return;
+  guests=[...new Set(guests)].filter(id=>weekendRoster(w,i).includes(id)).slice(0,2);
   const declined=guests.filter(id=>quietContact(id) || game.contacts[id]?.warning || (game.contacts[id]?.changes>=2 && game.contacts[id]?.callAfter>tick()));
   guests=guests.filter(id=>!declined.includes(id));
-  const others=w.people.filter(id=>!guests.includes(id) && !declined.includes(id) && !quietContact(id));
+  const others=weekendRoster(w,1-i).filter(id=>!quietContact(id) && !game.contacts[id]?.warning);
   if(others.length>=2){
     const [a,b]=others;meet(a);meet(b);bond(a,b);advanceCareer(a,w.plans[1-i]);advanceCareer(b,w.plans[1-i]);
     const rival=outings[w.plans[1-i]];
@@ -229,29 +239,32 @@ function hosts(){
   const w=weekend();menu('토요일, 어디로 갈까?');
   node('p',game.club.goal+' · '+goals[game.club.goal].brief,lifeBody);
   node('p','같은 날 열린 두 약속이에요. 같이 갈 사람은 두 명까지 부를 수 있어요.',lifeBody);
-  w.plans.forEach((key,i)=>menuButton(outings[key].title,()=>{
-    menu(outings[key].title);const guests=[];
-    const status=node('p','같이 갈 사람 · 0/2',lifeBody,'guest-status');status.setAttribute('aria-live','polite');
-    const swap=node('div','',lifeBody);const inputs=new Map();
-    function sync(){
-      swap.replaceChildren();for(const [id,b] of inputs)b.checked=guests.includes(id);
-      status.textContent='같이 갈 사람 · '+guests.length+'/2 '+guests.map(id=>members[id].name).join(' · ');
-    }
-    for(const id of [...new Set([...w.people,...Object.keys(game.contacts)])]){
-      const label=node('label','',lifeBody,'invitee'),b=node('input','',label);b.type='checkbox';
-      inputs.set(id,b);b.disabled=quietContact(id);
-      b.onchange=()=>{
-        if(b.checked && guests.length===2){
-          sync();node('p',members[id].name+'를 누구 대신 부를까요?',swap);
-          for(const old of guests)control(swap,members[old].name+' 대신 초대',()=>{guests[guests.indexOf(old)]=id;sync();});
-          control(swap,'그대로 두기',sync);swap.scrollIntoView?.({block:'nearest'});return;
-        }
-        if(b.checked)guests.push(id);else guests.splice(guests.indexOf(id),1);sync();
-      };
-      label.append(' '+members[id].name+(quietContact(id)?' · 혼자 쉬는 중':favorite(id)===key?' · 기다리던 번개':''));
-    }
-    menuButton('이대로 출발',()=>reserve(i,guests));menuButton('다른 약속 보기',hosts);
-  }));
+  w.plans.forEach((key,i)=>{
+    const roster=weekendRoster(w,i);
+    menuButton(outings[key].title+' · '+(roster.map(id=>members[id].name).join(' · ') || '혼자 가기'),()=>{
+      menu(outings[key].title);const guests=[];
+      const status=node('p','같이 갈 사람 · 0/2',lifeBody,'guest-status');status.setAttribute('aria-live','polite');
+      const swap=node('div','',lifeBody);const inputs=new Map();
+      function sync(){
+        swap.replaceChildren();for(const [id,b] of inputs)b.checked=guests.includes(id);
+        status.textContent='같이 갈 사람 · '+guests.length+'/2 '+guests.map(id=>members[id].name).join(' · ');
+      }
+      for(const id of roster){
+        const label=node('label','',lifeBody,'invitee'),b=node('input','',label);b.type='checkbox';
+        inputs.set(id,b);b.disabled=quietContact(id);
+        b.onchange=()=>{
+          if(b.checked && guests.length===2){
+            sync();node('p',members[id].name+' 초대 · 누구와 바꿀까요?',swap);
+            for(const old of guests)control(swap,members[old].name+' 대신 초대',()=>{guests[guests.indexOf(old)]=id;sync();});
+            control(swap,'그대로 두기',sync);swap.scrollIntoView?.({block:'nearest'});return;
+          }
+          if(b.checked)guests.push(id);else guests.splice(guests.indexOf(id),1);sync();
+        };
+        label.append(' '+members[id].name+(quietContact(id)?' · 혼자 쉬는 중':favorite(id)===key?' · 기다리던 번개':''));
+      }
+      menuButton('이대로 출발',()=>reserve(i,guests));menuButton('다른 약속 보기',hosts);
+    });
+  });
 }
 function growth(){
   for(const child of game.children){
@@ -268,6 +281,11 @@ function growth(){
 }
 function messages(){
   menu('우리 단톡방');
+  for(const e of game.queue.filter(isLetter)){
+    menuButton(members[e.id].name+(e.read?' · 연락 다시 보기':' · 새 연락 열기'),()=>{
+      closeMenu();focusOn({kind:'event',e});
+    });
+  }
   const echoes=game.echoes.filter(e=>e.due<=tick());
   echoes.forEach(e=>menuButton(members[e.id].name+' · '+e.title,()=>{
     game.echoes.splice(game.echoes.indexOf(e),1);enterScene(e);
@@ -313,13 +331,28 @@ function passSeason(skip=false){
     navigate();
   }
   if(promises.length || upcoming().length || (closing && game.echoes.some(e=>e.due<=tick()))){
-    menu('기다리는 사람이 있어요');node('p',promises.length+upcoming().length?'이번 계절이 지나면 '+(promises.length+upcoming().length)+'개의 약속을 놓쳐요.':'읽지 않은 후일담이 있어요. 지금 30년을 마칠까요?',lifeBody);
+    menu('기다리는 사람이 있어요');
+    for(const [id,c] of Object.entries(game.contacts))if(promises.includes(c))personalPlanButton(id,c);
+    for(const p of upcoming())diaryVisitButton(p);
+    node('p',promises.length+upcoming().length?'계절을 넘기면 이 약속에 가지 못해요.':'읽지 않은 후일담이 있어요. 지금 30년을 마칠까요?',lifeBody);
     menuButton('동네에 더 머물기',closeMenu);menuButton('그래도 계절 넘기기',move);
   }else move();
 }
+function canEndEarly(){return !game.ended && tick()>=20 && tick()<119;}
+function earlyEndingMenu(){
+  if(!canEndEarly())return;
+  menu('이 계절에서 이야기를 마칠까요?');
+  node('p',clockLabel()+'까지의 추억을 앨범에 남겨요. 엔딩을 보면 남은 대화와 약속은 진행할 수 없어요.',lifeBody);
+  menuButton('계속 플레이',closeMenu);
+  menuButton('이야기를 마치고 엔딩 보기',()=>{
+    closeMenu();if(albumDialog.open)albumDialog.close();
+    preview=null;game.event=null;completeRun();navigate();
+  });
+}
 function lifeDock(){
   growth();const w=weekend(),due=game.echoes.filter(e=>e.due<=tick()).length;
-  el('circle').textContent=due?'단톡방 · '+due:'단톡방';
+  const unread=due+game.queue.filter(e=>isLetter(e) && !e.read).length;
+  el('circle').textContent=unread?'단톡방 · '+unread:'단톡방';
   if(game.weddings.length){
     const e=game.weddings[0];dockButton(members[e.id].name+' · '+e.source,()=>{game.weddings.shift();enterScene(e);});
   }
@@ -327,6 +360,7 @@ function lifeDock(){
   if(!w.taken)dockButton('토요일 번개 열기',hosts);
   else if(due)dockButton('도착한 후일담 읽기',messages);
   dockButton(game.year===30 && game.season===3?'30년의 마지막 겨울 마치기':seasons[(game.season+1)%4]+'으로 넘어가기',()=>passSeason());
+  if(canEndEarly())dockButton('지금 엔딩 보기',earlyEndingMenu,true);
   if(!needsReply() && tick()<119)dockButton('다음 소식까지 쉬기',()=>passSeason(true),true);
 }
 function epilogue(g){
@@ -343,7 +377,7 @@ function epilogue(g){
   return null;
 }
 function archiveRun(){
-  const run={id:game.runId,player:game.player,title:ending(game).title,line:epilogue(game)?.line,
+  const run={id:game.runId,endedAt:clockLabel(),player:game.player,title:ending(game).title,line:epilogue(game)?.line,
     names:Object.fromEntries(familyIds().map(id=>[id,kinPerson(id).name])),
     links:familyIds().flatMap(id=>[...connections(id)].filter(([who])=>id<who).map(([who,roles])=>({id,who,roles}))),
     scenes:game.log.filter(visibleMemory).map(({year,season,id,title,memory,others})=>({year,season,id,title,memory,others}))};
@@ -362,13 +396,12 @@ function albumLife(parent){
   if(!archived.length)return;
   const shelf=details(parent,'지난 가족의 앨범 · '+archived.length+'권');
   for(const r of archived.reverse()){
-    const book=details(shelf,members[r.player].name+' · '+r.title);
-    const exclusions=storedList('family30.excluded');
+    const book=details(shelf,members[r.player].name+' · '+(r.endedAt || '30년 차 겨울')+' · '+r.title);
     if(r.links){
       const tree=details(book,'그 시절의 가계도');
-      for(const edge of r.links.filter(e=>![e.id,e.who].some(id=>exclusions.includes(id))))
+      for(const edge of r.links)
         node('p',r.names[edge.id]+' → '+edge.roles.join(' · ')+' → '+r.names[edge.who],tree);
     }
-    for(const s of r.scenes.filter(s=>![s.id,...(s.others || [])].some(id=>exclusions.includes(id)) && !exclusions.some(id=>members[id] && s.memory?.includes(members[id].name))))node('p',logText(s,r.names),book,'memory-card');
+    for(const s of r.scenes)node('p',logText(s,r.names),book,'memory-card');
   }
 }

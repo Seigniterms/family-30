@@ -19,7 +19,7 @@ function creditMemories(){
   const entries=game.log.filter(visibleMemory);
   const highlights=new Set([entries[0],entries.at(-1)].filter(Boolean));
   const priority=e=>['arrival','marry','date','split','childVisit','calendarVisit','weddingLetter','outingDay'].includes(e.effect)?2:e.code?1:0;
-  for(let year=1;year<=30;year+=4){
+  for(let year=1;year<=game.year;year+=4){
     const period=entries.filter(e=>e.year>=year && e.year<year+4);
     if(period.length)highlights.add(period.reduce((best,e)=>priority(e)>priority(best)?e:best));
   }
@@ -34,23 +34,23 @@ function creditPortrait(parent,id,role){
 function showCredits(replay=false){
   const cast=creditCast(),title=ending(game).title;
   actors.replaceChildren();dock.replaceChildren();
-  el('stage-time').textContent='30년 차 겨울 · 엔딩';
+  el('stage-time').textContent=clockLabel()+' · 엔딩';
   const frame=node('section','',actors,'credits-frame');
-  frame.setAttribute('aria-label','우리의 30년 엔딩 크레딧');
+  frame.setAttribute('aria-label',clockLabel()+' 엔딩 크레딧');
   function finalPhoto(){
     frame.replaceChildren();dock.replaceChildren();frame.className='credits-frame credits-photo';
-    node('small','30년 차 · 마지막 겨울',frame,'credit-year');
+    node('small',clockLabel()+' · 마지막 사진',frame,'credit-year');
     node('h1',title,frame);
     const group=node('div','',frame,'credit-group');
     for(const [id,role] of cast)creditPortrait(group,id,role);
-    dockButton('30년의 가족 앨범',openAlbum);
+    dockButton(tick()===119?'30년의 가족 앨범':'우리 가족 앨범',openAlbum);
     dockButton('엔딩 다시 보기',()=>showCredits(true),true);
     if(!game.creditsSeen){game.creditsSeen=true;persist();}
   }
   if(game.creditsSeen && !replay){finalPhoto();return;}
   const reel=node('div','',frame,'credit-reel');
-  node('small','첫 봄부터 마지막 겨울까지',reel,'credit-year');
-  node('h1',members[game.player].name+'의 30년',reel);
+  node('small','첫 봄부터 '+clockLabel()+'까지',reel,'credit-year');
+  node('h1',members[game.player].name+(tick()===119?'의 30년':'의 이야기'),reel);
   for(const entry of creditMemories()){
     const card=node('article','',reel,'credit-memory');
     node('small',entry.year+'년 차 '+seasons[entry.season || 0],card,'credit-year');
@@ -59,7 +59,7 @@ function showCredits(replay=false){
     const withWhom=[...new Set([entry.id,...(entry.others || [])])].filter(id=>id!==game.player && !isCut(id));
     if(withWhom.length)node('small',withWhom.map(id=>kinPerson(id).name).join(' · '),card);
   }
-  node('h2',cast.size>1?'마지막 겨울을 함께한 사람들':'나의 마지막 겨울',reel);
+  node('h2',cast.size>1?'끝까지 함께한 사람들':'마지막 장면의 나',reel);
   const group=node('div','',reel,'credit-group');
   for(const [id,role] of cast)creditPortrait(group,id,role);
   const maxScroll=()=>Math.max(0,frame.scrollHeight-frame.clientHeight);

@@ -119,14 +119,37 @@ function stageFace(id,hint,slot,focused,fn){
   bubble.textContent=hint || '';bubble.hidden=!hint || focused;
   b.setAttribute('aria-label',[kinPerson(id).name,hint].filter(Boolean).join(' · '));
 }
-function pages(text){
-  const lines=[''];
-  for(const word of text.split(/\s+/)){
-    const i=lines.length-1;
-    if(lines[i] && (lines[i]+' '+word).length>56) lines.push(word);
-    else lines[i]+=(lines[i]?' ':'')+word;
+// A beat is one speaker or one observation. Let CSS wrap the full thought.
+function sceneBeats(story,event){
+  const result=event.result;
+  if(result){
+    const beats=[];
+    // Older photo reunions saved narrated outcomes with the speech flag set.
+    const legacyNarration=['photoReunion','photoWinter'].includes(event.type) &&
+      !story.choices.some(choice=>choice.label===result.label);
+    if(result.line)beats.push({text:result.line,voice:result.spoken===true && !legacyNarration});
+    if(result.memory && result.memory!==result.line)beats.push({text:result.memory,voice:false});
+    return beats;
   }
-  return lines;
+  const beats=[];
+  if(story.setup && story.setup!==story.message)beats.push({text:story.setup,voice:false});
+  if(story.message)beats.push({text:story.message,voice:!story.narrationOnly});
+  return beats;
+}
+function sceneSpeaker(event,story){
+  if(event.result?.speaker)return event.result.speaker;
+  if(story.speaker)return story.speaker;
+  if(event.social && !event.social.resolved)return event.social.speaker;
+  if(event.type==='ticketChat' || (event.type==='incident' && event.route==='group'))return event.other;
+  if(['childVisit','sports','sportsLater'].includes(event.type))return event.kid;
+  if(event.type==='calendarVisit')return event.people[0];
+  return event.id;
+}
+function stageLine(text,speaker){
+  const bubble=node('div','',dock,speaker?'actor-dialogue':'stage-narration');
+  if(speaker)node('strong',speaker===game.player?'나 · '+kinPerson(speaker).name:kinPerson(speaker).name,bubble,'voice-name');
+  node('span',text,bubble);
+  return bubble;
 }
 function eventPlace(e){
   if(e?.type==='seated') return 'seats';
@@ -158,7 +181,8 @@ function renderStage(){
   if(game.ended){
     showCredits();return;
   }
-  const speaker=event?.social && !event.social.resolved?event.social.speaker:event?.type==='incident' && event.route==='group'?event.other:event?.type==='ticketChat'?event.other:event?.type==='childVisit'?event.kid:event?.type==='calendarVisit'?event.people[0]:event?.id;
+  const story=event?scene(event):null;
+  const speaker=event && sceneSpeaker(event,story);
   if(!event){
     actors.replaceChildren();
     const board=node('div','',actors,'town-board');
@@ -181,7 +205,7 @@ function renderStage(){
   });
   const topics=gathered.filter(item=>item.e.id===speaker);
   if(courtesy && preview){
-    node('div',courtesy,actors,'actor-dialogue');
+    stageLine(courtesy,speaker);
     dockButton('다른 인물 만나기',()=>focusOn(null));return;
   }
   if(preview && browsingTopics){
@@ -201,7 +225,6 @@ function renderStage(){
     if(game.contacts[speaker]) dockButton('관계 정리',()=>cutMenu(speaker),true);
     dockButton('주변 보기',()=>focusOn(null),true);return;
   }
-  const story=scene(event);
   if(event.memoryThread?.kind==='date'){
     actors.replaceChildren();
     const wall=node('div','',actors,'snap-wall');
@@ -224,24 +247,21 @@ function renderStage(){
         photoPrint(button,index);
         button.onclick=()=>answer(index);
       });
-    }else photoPrint(wall,game.snapshot.frame,event.type==='photoNote' || (event.type==='photoReunion' && game.snapshot.reply===0));
-    node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':members[event.id].name+(event.type==='photoWinter'?' · 사진첩':' · 개인톡'),wall,'snap-caption');
+    }else{
+      const cropped=event.type==='photoNote' && (event.step===1 || (event.result && game.snapshot.reply===0));
+      photoPrint(wall,event.type==='photoNote'?0:game.snapshot.frame,cropped || (event.type==='photoReunion' && game.snapshot.reply===0));
+    }
+    node('small',event.type==='snapshot'?'첫 번개 · 단톡방 배경':(event.type==='photoWinter'?'첫 번개 사진첩':event.type==='photoReunion'?'여름 번개':members[event.id].name+' · 개인톡'),wall,'snap-caption');
   }
   const beat=event.result || event.type+':'+event.id+':'+(event.route || event.step || 0);
   if(lastBeat!==beat){page=0;lastBeat=beat;}
-  // Preview opens on the character's words. Opening narration is read once in committed scenes.
-  const speech=event.result
-    ? [...new Set([event.result.line,event.result.memory].filter(Boolean))].map(text=>({text,voice:false}))
-    : [...((!preview || ['chapter','schedule','sports','ticketChat','clash','arrival','familyNews','reconnect','follow'].includes(event.type)) && !(event.spontaneous && isLetter(event)) && story.setup?[{text:story.setup,voice:false}]:[]),{text:story.message,voice:true}];
-  const lines=speech.flatMap(part=>pages(part.text).map(text=>({...part,text})));
+  const lines=sceneBeats(story,event);
   const current=lines[page] || lines[0];
   const nextLine=()=>{page++;renderStage();};
-  const talking=current.voice || (event.result?.spoken && page===0);
-  actors.classList.toggle('speaking',talking);
-  const line=node('div',current.text,talking?actors:dock,talking?'actor-dialogue':'stage-narration');
-  line.setAttribute('aria-live','polite');
+  actors.classList.toggle('speaking',current.voice);
+  if(event.result)node('small','나 · '+event.result.label,dock,'my-answer');
+  const line=stageLine(current.text,current.voice?speaker:null);
   if(event.result){
-    node('small','나 · '+event.result.label,dock,'my-answer');
     const effect=game.log.at(-1)?.effect;
     const c=game.contacts[event.id];
     let change='';

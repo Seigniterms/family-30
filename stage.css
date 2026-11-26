@@ -138,3 +138,6 @@
 .little-cake{position:absolute;bottom:3%;left:36%;width:30%;height:30%;border-radius:20% 20% 12% 12%;background:linear-gradient(#fff2da 0 30%,#dc8281 31% 43%,#ffd599 44% 76%,#fff2da 77%);box-shadow:0 3px 4px #51334766}
 .little-cake::before{content:'';position:absolute;background:#d84448;left:40%;bottom:92%;width:24%;height:31%;border-radius:55% 55% 65% 65%}
 .little-cake.tilted{transform:rotate(13deg)}
+#stage-dock .actor-dialogue{position:relative;inset:auto;transform:none;justify-self:center;box-sizing:border-box;width:fit-content;max-width:100%;text-align:left}
+.voice-name{display:block;color:#8a4739;font-size:12px;line-height:1.4;margin-bottom:2px}
+#stage-dock .stage-narration{background:#fff4dfed;color:#4d4247;font-weight:500}

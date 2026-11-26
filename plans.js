@@ -88,10 +88,10 @@ function expirePlans(){
 }
 function upcoming(){return game.diary.filter(p=>p.state==='booked' && p.due<=tick());}
 const familyScenes=[
- {until:6,title:'잠들기 전 그림책',voice:'이 페이지 한 번만 더 읽어 줘!',choices:[['괴물 목소리로 읽는다','이불을 뒤집어쓴 아이의 웃음소리가 터졌다.'],['같이 결말을 지어낸다','책 맨 뒤에 우리만의 결말을 그렸다.']]},
- {until:12,title:'방과 후 운동장',voice:'봐 봐. 오늘 처음으로 혼자 성공했어!',choices:[['한 번 더 보여 달라고 한다','아이가 신발 끈을 묶고 내 앞으로 달려왔다.'],['같이 연습한다','해가 질 때까지 둘이 번갈아 뛰었다.']]},
- {until:18,title:'닫힌 방문 앞에서',voice:'오늘은 그냥 들어 주면 안 돼?',choices:[['조용히 곁에 앉는다','아이가 먼저 이어폰 한쪽을 건네고 학교 얘기를 꺼냈다.'],['지금은 혼자 있게 해 준다','문 앞에 귤 두 개를 놓았다. 잠시 뒤 고맙다는 톡이 왔다.']]},
- {until:Infinity,title:'독립한 집의 첫 손님',voice:'초인종 눌러 봐. 이젠 내가 열어 주는 집이야.',choices:[['장바구니를 들고 찾아간다','작은 부엌에서 국을 끓이고 그릇 두 개를 꺼냈다.'],['동네 단골집을 소개받는다','아이가 내 손을 잡고 자기 동네 골목을 안내했다.']]}
+ {until:6,title:'잠들기 전 그림책',setup:'책을 덮으려는데 아이가 괴물 그림을 손가락으로 짚는다.',voice:'괴물 나오는 데 한 번만 더 읽어 줘!',replies:['으악! 그 목소리로 굿나잇도 해 줘.','괴물도 우리 집에서 자면 안 돼?'],choices:[['괴물 목소리로 읽는다','이불을 뒤집어쓴 아이의 웃음소리가 터졌다.'],['같이 결말을 지어낸다','책 맨 뒤에 우리만의 결말을 그렸다.']]},
+ {until:12,title:'방과 후 운동장',setup:'방과 후 운동장에 가니 아이가 줄넘기를 들고 뛰어온다.',voice:'오늘 처음으로 줄 안 걸리고 열 번 넘었어. 한번 볼래?',replies:['열하나! 방금 내 기록 깼지?','이번엔 내가 세어 줄게. 하나, 둘!'],choices:[['한 번 더 보여 달라고 한다','아이가 줄을 넘을 때마다 숫자를 셌다. 열한 번째에 둘 다 만세를 불렀다.'],['같이 연습한다','한 줄씩 잡고 나란히 뛰다가 서로 발이 엉켜 웃었다.']]},
+ {until:18,title:'닫힌 방문 앞에서',setup:'방문을 두드리자 안쪽에서 이어폰 줄을 감는 소리가 난다.',voice:'학교에서 속상한 일 있었어. 오늘은 그냥 들어 줄래?',replies:['점심시간에 나만 남았거든. 그때 얘기부터 해도 돼?','귤 봤어. 고마워. 조금 쉬고 나갈게.'],choices:[['조용히 곁에 앉는다','아이가 먼저 이어폰 한쪽을 건네고 학교 얘기를 꺼냈다.'],['지금은 혼자 있게 해 준다','문 앞에 귤 두 개를 놓았다. 잠시 뒤 고맙다는 톡이 왔다.']]},
+ {until:Infinity,title:'독립한 집의 첫 손님',setup:'이사를 마친 아이에게서 새집 주소가 왔다.',voice:'저녁 먹으러 와. 첫 손님 맞으려고 접시 두 개 꺼냈어.',replies:['우리 집에서 국 끓이는 냄새 나니까 진짜 이사 온 것 같다.','금방이야. 모퉁이 돌면 내가 좋아하는 식당 있어.'],choices:[['장바구니를 들고 찾아간다','작은 부엌에서 국을 끓이고 그릇 두 개를 꺼냈다.'],['동네 단골집을 소개받는다','아이가 내 손을 잡고 자기 동네 골목을 안내했다.']]}
 ];
 function childMenu(id){
   const child=allChildren().find(c=>c.id===id);if(!child || isCut(id))return;
@@ -119,28 +119,35 @@ function weddingNotice(pair){
 }
 function personalScene(e){
   const child=e.type==='childVisit'?allChildren().find(c=>c.id===e.kid):null;
-  let title,message,choices;
+  let title,message,choices,setup,replies;
   if(child){
     const script=familyScenes.find(s=>childAge(child)<s.until);
-    ({title,voice:message,choices}=script);
+    ({title,setup,voice:message,choices}=script);
+    replies=script.replies;
   }else if(e.type==='weddingLetter'){
     title=e.source;message=kinPerson(e.other).name+'와 결혼해. 너한테는 내 입으로 얘기하고 싶었어.';
-    choices=[['직접 만나 이유를 듣는다','둘이 만났던 날들을 이야기하고 연인으로서는 작별했다.'],['결혼식에 가고 싶다고 전한다','축하를 전하고 결혼식 일정을 확인하기로 했다.'],['당분간 연락을 쉬자고 한다','내 마음을 추스를 시간을 달라고 했다.']];
+    replies=['응. 내가 먼저 연락할게. 고맙다는 말도 얼굴 보고 하고 싶어.','와 주면 정말 좋지. 결혼식 날짜 보내 줄게.','알겠어. 당분간은 내가 먼저 연락하지 않을게.'];
+    choices=[['따로 만나서 얘기하고 싶다고 한다','마주 앉아 함께했던 시간을 돌아보고 서로의 새 출발에 인사를 건넸다.'],['결혼식에 가고 싶다고 전한다','축하를 전하고 결혼식 일정을 확인하기로 했다.'],['당분간 연락을 쉬자고 한다','내 마음을 추스를 시간을 달라고 했다.']];
   }else{
     const lines={
       groupMeal:['같이 잡은 저녁','빈 접시 하나 더! 오늘은 다 같이 먹는 날이잖아.','다 같이 건배한다','함께 사진을 찍는다'],
       childMeal:['가족 저녁','오늘 내 옆자리 비워 놨어!','옆에 앉아 하루를 묻는다','같이 디저트를 만든다'],
-      ceremony:['결혼식장에서','자리까지 와 줘서 고마워.','축하를 전한다','방명록에 편지를 남긴다']
+      ceremony:['결혼식장에서','결혼식에 와 줘서 고마워. 하객석에서 네 얼굴 보니까 긴장이 풀리더라.','축하를 전한다','방명록에 편지를 남긴다']
     }[e.kind];[title,message]=lines;
     const outcomes={
-      groupMeal:['세 사람이 잔을 맞대자 지난번 모임 얘기가 터져 나왔다.','식탁 위 빈 그릇까지 담긴 사진이 단톡방에 올라갔다.'],
+      groupMeal:['식탁에 모인 사람들이 잔을 맞댔다. 지난번 번개 얘기에 여기저기서 웃음이 터졌다.','식탁 위 빈 그릇까지 담긴 사진이 단톡방에 올라갔다.'],
       childMeal:['수저를 내려놓자 아이가 오늘 있었던 일을 하나씩 들려줬다.','아이가 접시에 마지막 딸기를 올리고 내 앞으로 밀어 줬다.'],
       ceremony:['식이 끝난 뒤 눈을 마주치고 두 사람에게 축하를 건넸다.','식장 문을 나서기 전, 방명록에 짧은 편지를 남겼다.']
     }[e.kind];
+    replies={
+      groupMeal:['오늘은 막차 전에 단체 사진도 찍자.','잠깐, 나 입 닦고! 찍으면 단톡에도 올려 줘.'],
+      childMeal:['오늘 웃긴 일 있었어. 첫 숟갈 먹으면서 얘기해 줄게.','저 딸기 제일 큰 거야. 먼저 먹어 봐.'],
+      ceremony:['와 줘서 고마워. 나중에 사진도 꼭 보내 줄게.','네 글씨 알아봤어. 식 끝나면 천천히 읽을게.']
+    }[e.kind];
     choices=lines.slice(2).map((label,i)=>[label,outcomes[i]]);
   }
-  const delivery={'친구가 보낸 사진':'친구가 보낸 사진 속 두 사람이 예복을 입고 있다. 잠시 뒤 당사자에게 전화가 왔다.','먼저 걸려 온 전화':'오랜만에 전화가 울렸다. 한참 숨을 고르더니 말을 꺼낸다.','우편함 속 청첩장':'봉투 안의 두 이름을 읽었다. 편지 아래 익숙한 글씨가 이어진다.'};
-  return {title,setup:e.type==='calendarVisit'?planLabel(e)+' 약속 날이다.':delivery[e.source] || title,message,choices:choices.map(([label,line])=>({label,line}))};
+  const delivery={'친구가 보낸 사진':'예복을 입은 두 사람의 사진이 단톡에 올라왔다. 잠시 뒤 개인톡이 왔다.','먼저 걸려 온 전화':'휴대폰이 울린다. 전화를 받자 상대가 잠시 숨을 고른다.','우편함 속 청첩장':'청첩장 안에 내 이름으로 시작하는 짧은 편지가 들어 있다.'};
+  return {title,setup:setup || delivery[e.source] || planLabel(e)+' 약속 날이다.',message,choices:choices.map(([label,line],i)=>({label,line,reply:replies?.[i]}))};
 }
 function answerPersonal(e,index){
   const story=personalScene(e),a=story.choices[index];if(!a)return;
@@ -161,5 +168,8 @@ function answerPersonal(e,index){
     bond(...e.people);for(const id of e.people){const c=game.contacts[id];if(c)c.trust=(c.trust || 0)+1;}
   }
   const memory=people.map(id=>kinPerson(id).name).join(' · ')+' — '+a.line;
-  remember(e.id,story.title,memory,e.type,people);e.result={label:a.label,line:a.line,memory:a.line};navigate();
+  remember(e.id,story.title,memory,e.type,people);
+  e.result={label:a.label,line:a.reply || a.line,memory:a.line,spoken:!!a.reply,
+    speaker:e.type==='childVisit'?e.kid:e.type==='calendarVisit'?e.people[0]:e.id};
+  navigate();
 }

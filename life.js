@@ -92,9 +92,9 @@ function cutPerson(id,line){
   node('p',line,lifeBody,'exit-line');menuButton('돌아서기',closeMenu);
 }
 const outings={
- shoot:{title:'골목 화보',track:'사진',job:'동네 사진가',setup:'촬영장에 도착하니 커플 의상이 두 벌 걸려 있다.',voice:'이거 우리 둘 다 입는 거였어?',paths:[
+ shoot:{title:'골목 화보',track:'사진',job:'동네 사진가',setup:'옷걸이에 똑같은 재킷이 두 벌 걸려 있다.',voice:'재킷 맞춰 입고 찍으면 다들 우리 보고 뭐라고 할까?',paths:[
  ['커플 화보를 공개한다','둘이 등 돌리고 찍은 컷이 단톡방 대문 사진이 됐다.','우리 진짜 사귀냐고 아직도 물어봐. 다음엔 셋이 찍을까?','단톡 대문 사진'],
- ['한 장만 인화해 간직한다','서툰 포즈가 담긴 사진을 봉투에 넣었다.','그때 B컷도 인화했어. 너 먼저 보여 주려고.','둘만의 B컷']]},
+ ['한 장만 인화해 간직한다','서툰 포즈가 담긴 사진을 봉투에 넣었다.','그때 눈 마주치고 웃은 사진도 한 장 뽑았어. 너한테 주려고.','둘만의 B컷']]},
  game:{title:'동네 게임 대회',track:'게임',job:'대회 해설위원',setup:'결승전을 앞두고 팀의 마이크가 하나만 살아남았다.',voice:'누가 작전 불러 줄래?',paths:[
  ['직접 작전을 부른다','마지막 역전 순간, 둘이 같은 타이밍에 소리를 질렀다.','결승 녹음 들었어? 우리 목소리로 응원가 만들자.','역전 경기 녹음'],
  ['객석에서 중계를 맡는다','말이 꼬인 중계가 경기보다 더 큰 박수를 받았다.','다음 경기 중계석에 우리 이름 붙었어. 올 거지?','손글씨 중계석 명패']]},
@@ -102,7 +102,7 @@ const outings={
  ['한 냄비에 몽땅 끓인다','즉석 김치 라면을 종이컵에 나눠 담았다.','사장님이 우리 라면을 메뉴판에 올리셨대! 이름 지으러 갈래?','손때 묻은 레시피'],
  ['남은 재료로 요리 대결','컵라면 뚜껑 위에서 세상 작은 시식회가 열렸다.','이번에는 내가 재료 사 갈게. 심사위원 해 줘.','종이컵 우승 트로피']]},
  trip:{title:'막차 놓친 여행',track:'여행',job:'골목 여행 작가',setup:'역무원이 막차 대신 첫차 시간을 가리켰다. 우리 짐은 벌써 벤치 하나를 다 차지했다.',voice:'첫차까지 네 시간인데, 뭐 하고 놀까?',paths:[
- ['새벽 시장에서 길을 묻는다','시장 상인이 첫 손님이라며 따뜻한 어묵을 얹어 줬다.','그 가게 기억나? 손편지 답장이 왔어.','새벽 시장 지도'],
+ ['새벽 시장에서 길을 묻는다','시장 상인이 첫 손님이라며 따뜻한 어묵을 얹어 줬다.','첫차 기다리면서 어묵 먹었던 가게 기억나? 다음엔 일부러 찾아갈래?','새벽 시장 지도'],
  ['대합실에서 라디오를 켠다','신청곡 사연에 우리 이름이 차례로 흘러나왔다.','우리 사연 다시 듣기 떴어. 같이 들을래?','첫차 방송 사연']]}
 };
 const favorites={'히히':'shoot','우주':'shoot','박들춘':'game','크림':'game','닭발':'dinner','묵은지':'dinner','씽씽':'trip','냥냥':'trip'};
@@ -117,7 +117,7 @@ function advanceCareer(id,activity){
 const teamRoles={
   shoot:['렌즈 뒤에 선다','모델 자리에 선다','셔터를 쥔 내 손이 떨렸다.','조명이 켜지자 사람들이 내 포즈를 따라 했다.'],
   game:['팀장을 맡는다','후보석에서 지켜본다','팀원들이 내 신호를 기다렸다.','작전판을 쥔 채 선수 교체 신호를 기다렸다.'],
-  dinner:['불 앞을 맡는다','시식단을 모은다','냄비가 끓어넘치기 직전이다.','젓가락 든 손이 세 개나 더 늘었다.'],
+  dinner:['불 앞을 맡는다','시식단을 모은다','냄비가 끓어넘치기 직전이다.','나는 시식할 접시를 꺼냈다.'],
   trip:['총무를 맡는다','추억 담당을 맡는다','주머니에 남은 동전과 차표를 세었다.','카메라에 찍힌 건 흔들린 간판뿐이다.']
 };
 function addEcho(id,kind,message,title,guests=[]){
@@ -126,11 +126,17 @@ function addEcho(id,kind,message,title,guests=[]){
 function lifeScene(e){
   const opt=(label,line)=>({label,line,effect:'memory'});
   if(e.type==='echo'){
-    const follow={
-      shoot:['같은 포즈로 한 장 더','작년 사진 옆에 오늘 사진을 붙였다. 포즈는 같고 표정은 훨씬 편했다.'],
-      game:['같이 마이크를 잡는다','마이크 하나를 나눠 쓰면서 지난 경기 결정적인 순간을 다시 중계했다.'],
-      dinner:['내 이름으로 한 그릇 주문','주문을 받던 사장님이 메뉴판을 톡 치며 아는 척했다.'],
-      trip:['그때 그 길을 다시 걷는다','낯선 골목이 이번에는 지도를 펴지 않아도 익숙했다.'],
+    const visitReplies={
+      shoot:[['다음엔 타이머 켜고 같이 찍자.','다음 촬영에는 사진을 찍던 사람도 프레임에 들어오기로 했다.'],['그 사진 나도 한 장 갖고 싶어.','함께 웃은 사진을 한 장씩 나눠 가졌다.']],
+      game:[['우리 목소리부터 들어 보자.','역전 순간의 함성을 다시 듣다가 둘 다 헤드폰을 벗고 웃었다.'],['중계석에 내 자리 남겨 줘.','중계석 명패 뒤에 다음 경기 날짜를 적었다.']],
+      dinner:[['메뉴판에 이름 쓰러 가자.','단골집 메뉴판에 그날 만든 라면 이름을 나란히 적었다.'],['다음엔 내가 심사할게.','다음 시식회의 첫 숟갈은 내 몫이 됐다.']],
+      trip:[['이번엔 어묵 먹으러 가자.','막차를 놓치고 찾아간 어묵집이 둘이서 약속한 목적지가 됐다.'],['다시 듣기 같이 틀자.','방송에서 우리 이름이 들리자 둘이 동시에 볼륨을 올렸다.']]
+    };
+    const follow=visitReplies[e.kind]?.[e.path] ||{
+      shoot:['사진 얘기를 더 나눈다.','번개에서 가장 마음에 들었던 사진을 한 장씩 골랐다.'],
+      game:['그날 경기 얘기를 꺼낸다.','경기를 떠올리며 가장 떨렸던 순간을 들려줬다.'],
+      dinner:['다음에 먹을 메뉴를 고른다.','그날 맛본 음식 중 또 먹고 싶은 걸 하나 골랐다.'],
+      trip:['막차를 놓쳤던 밤 얘기를 한다.','새벽까지 놀던 기억을 떠올리며 한참 얘기했다.'],
       neighbors:['사진 속 두 사람에게 답장','사진을 보고 웃었다. 다음 모임 날짜는 내 일정에서 따로 정하기로 했다.'],
       weddingAfter:['그날 이야기의 뒷장을 남긴다','서로에게 했던 말을 기억하기로 했다.'],
       retry:['다 같이 국수 먹으러 가자','둘만의 고백이 지나간 자리에 여럿이 둘러앉을 약속이 생겼다.'],
@@ -138,15 +144,17 @@ function lifeScene(e){
       milestone:['첫날 멤버들과 기념사진','처음 모였던 그 자리에서 사진을 찍어 벽 한가운데 걸었다.'],
       growth:['그 순간을 녹음한다','가족 앨범에 오늘의 목소리가 남았다.']
     }[e.kind] || ['그래, 같이 하자.','그날의 이야기에 우리만 아는 뒷장이 생겼다.'];
-    return {title:e.title,setup:e.previous || '지난번 일이 다시 내게 돌아왔다.',message:e.message,choices:[
-      opt(...follow),opt('오늘은 답장만 남긴다.','소식을 전해 줘서 고맙다고 답했다.')]};
+    const note=e.kind==='milestone' || e.id===game.player;
+    return {title:e.title,setup:e.previous || '',message:e.message,narrationOnly:note,choices:[
+      opt(...follow),note?opt('앨범에 적어 둔다.','오늘의 기억을 앨범에 적었다.'):opt('오늘은 답장만 남긴다.','소식을 전해 줘서 고맙다고 답했다.')]};
   }
   if(e.social && !e.social.resolved)return meetupScene(e);
   const o=outings[e.activity];
   if(e.role==null && e.guests.length){
-    const roles=teamRoles[e.activity];return {title:o.title,setup:(e.social?.line?e.social.line+' ':'')+e.guests.map(id=>members[id].name).join(' · ')+'와 모였다.',message:'오늘 네가 맡고 싶은 건 뭐야?',choices:[opt(roles[0],roles[2]),opt(roles[1],roles[3])]};
+    const roles=teamRoles[e.activity];return {title:o.title,setup:e.social?.line || e.guests.map(id=>members[id].name).join(' · ')+'와 만났다.',message:o.title+'에서 어떤 역할을 맡을래?',choices:[opt(roles[0],roles[2]),opt(roles[1],roles[3])]};
   }
-  return {title:o.title,setup:(e.role!=null?teamRoles[e.activity][2+e.role]+' ':'')+(e.declined?.length?e.declined.map(id=>members[id].name).join(' · ')+'에게 답장이 왔다. “이번엔 쉴게. 다음에 보자.” ':'')+(e.guests.length?e.guests.map(id=>members[id].name).join(' · ')+'와 길을 나섰다. ':'나 혼자 길을 나섰다. ')+o.setup,message:e.id===game.player?'혼자 온 김에 어디까지 해 볼까?':o.voice,choices:o.paths.map(p=>opt(p[0],p[1]))};
+  const prior=e.role!=null?teamRoles[e.activity][2+e.role]:'';
+  return {title:o.title,setup:[prior,o.setup].filter(Boolean).join(' '),message:e.id===game.player?'혼자서 오늘 뭘 해 볼까?':o.voice,narrationOnly:e.id===game.player,choices:o.paths.map(p=>opt(p[0],p[1]))};
 }
 function bond(a,b){
   if(!a || !b || a===b)return;
@@ -184,6 +192,7 @@ function answerLife(e,index){
     if(club.visits===8)memory+=' 단골자리에 우리 이름으로 작은 간판을 달았다.';
     (game.keepsakes ||= []).push({id:e.id,title:path[3],year:game.year,memory,others:e.guests});
     addEcho(e.id,e.activity,e.id===game.player?'그날 남긴 '+path[3]+', 다시 꺼내 볼까?':path[2],path[3],e.guests);
+    game.echoes.at(-1).path=index;
   }else if(index===0 && game.contacts[e.id]){
     const c=game.contacts[e.id];c.trust=(c.trust || 0)+1;c.needsMeeting=false;
     if(e.kind==='retry')setPromise(c,'dinnerDate');
@@ -317,7 +326,9 @@ function messages(){
       const repeated=c.greeted===tick();c.greeted=tick();
       if(!repeated)remember(id,'단톡방 안부','서로의 하루를 물었다.','greeting');
       const echo=game.echoes.find(e=>e.id===id && e.due<=tick());
-      const note=quietContact(id)?'메시지는 전해졌지만 아직 답이 없다.':echo?.message || c.note?.text || (repeated?'아까 봤잖아. 또 무슨 일이야?':c.promise?'그날 꼭 보자. 시간 비워 놨어.':members[id].name+'의 답장 · '+(Array.from(portraits).find(p=>p.dataset.id===id)?.dataset.quote || '마침 네 생각 했어.'));
+      const quiet=quietContact(id);
+      const reply=echo?.message || (repeated?'또 연락했네. 무슨 일 있어?':c.promise?'약속한 날 시간 비워 놨어. 그날 보자.':'마침 네 생각 했어. 오늘 어땠어?');
+      const note=quiet?'메시지를 보냈다. 아직 답이 없다.':members[id].name+' · '+reply;
       let bubble=lifeBody.querySelector('.contact-reply');if(!bubble)bubble=node('p','',lifeBody,'contact-reply');bubble.textContent=note;persist();
     });
     menuButton('관계 정리',()=>cutMenu(id));

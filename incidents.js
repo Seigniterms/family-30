@@ -1,16 +1,23 @@
 // Each incident can stay between two people or draw a witness into the room.
 const incidents={
   mic:{
-    title:'켜져 있던 마이크', opening:'잠깐. 방금 내가 네 이름 부른 거… 스피커로 다 나갔어?',
+    title:'켜져 있던 마이크', setup:'번개 공연이 끝났다. 내 옆에서 빨간 마이크 불빛이 깜박인다.',
+    pairReply:'좋아. 다음 저녁에 이어폰 가져갈게. 한쪽씩 나눠 끼자.',quietReply:'응. 마이크 껐으니까 한 번만 더 말할게. 네가 왔으면 했어.',
+    teamReply:'다음 저녁엔 이 녹음부터 틀자. 내 음이탈까지 다 들리겠지?',photoReply:'세 사람이 마이크 하나를 들고 찍었다. 내가 찍은 사진에는 셋의 손이 겹쳐 보인다.',
+    photoEcho:'마이크 잡은 손 셋이 겹친 사진, 우리끼리 한 장씩 갖자.', opening:'잠깐. 방금 내가 네 이름 부른 거… 스피커로 다 나갔어?',
     private:'마이크부터 끄고 둘이 얘기한다.', crowd:'마이크를 받아 공개 사연으로 바꾼다.',
     whisper:'신청곡 사연에 네 이름 썼어. 진행자가 읽기 전에 내가 말하고 싶었는데.',
-    witness:'나 사연 끝까지 못 들었어! 둘이 듀엣으로 마무리하면 인정.',
+    witness:'나 방금 끊긴 사연 들었어. 마이크 하나 더 있는데, 셋이 후렴 부를까?',
     pair:'다음 곡은 우리 둘이 듣자.', team:'셋이 후렴을 나눠 부른다.',
     groupMemory:'셋이 부른 앙코르 녹음',groupEcho:'마지막 음에서 셋 다 갈라진 거 들었어? 다음 번개 알림음으로 하재.', secret:'마이크 꺼진 동안 한 말은 우리만 알아. 다음 곡 골라 줄래?',
     keepsake:'이름이 들어간 신청곡', echo:'그날 신청곡 다시 듣기 떴어. 끝에 우리 웃음소리 들려?'
   },
   bag:{
-    title:'바뀐 선물 봉투',opening:'그 봉투 열었어? 다 같이 먹을 쿠키는 맞는데… 밑에 카드가 하나 있어.',
+    title:'쿠키 봉투 속 카드',setup:'간식 테이블에서 쿠키를 나누는데 내 봉투에만 접힌 종이가 보인다.',
+    pairReply:'그럼 다음엔 저녁 먹고 우리 집에서 굽자. 카드에는 뭐라고 쓸지 같이 정하고.',
+    quietReply:'그래. 다들 앞에서 읽었으면 얼굴 빨개졌을 거야.',
+    teamReply:'좋아. 셋이 저녁부터 먹고 다음 번개에 낼 쿠키를 골라 보자.',photoReply:'카드 글씨는 가리고 셋이 쿠키 봉투만 찍었다.',
+    photoEcho:'쿠키 봉투 사진 잘 받았어. 카드 글씨 가려 줘서 고마워.',opening:'그 봉투 열었어? 다 같이 먹을 쿠키는 맞는데… 밑에 카드가 하나 있어.',
     private:'카드는 주머니에 살짝 넣는다.',crowd:'쿠키부터 펼쳐 놓고 주인을 찾는다.',
     whisper:'네 것만 한 번 더 구웠어. 좋아한다고 쓰기는 쑥스러워서 뒷면에 조그맣게 썼는데.',
     witness:'범인 찾았다! 이 포장지 산 사람 나랑 같이 장 봤잖아.',
@@ -19,34 +26,40 @@ const incidents={
     keepsake:'쿠키 봉투 속 손편지',echo:'카드 모서리에 묻은 거 초콜릿이야. 다음엔 앞면에 제대로 쓸게.'
   },
   train:{
-    title:'반대편 막차',opening:'야, 내려! 우리 반대 방향 탔어. 어… 문 닫혔다.',
+    title:'반대편 막차',setup:'막차에 막 올라탔다. 전광판에 우리 집과 반대쪽 역 이름이 뜬다.',
+    pairReply:'좋아. 다음에 제대로 된 방향으로 타도 저녁은 또 같이 먹자.',quietReply:'오늘 길 잘못 든 얘기는 비밀이다. 같이 있으니까 덜 창피해.',
+    teamReply:'그럼 오늘은 내가 길을 찾고, 다음 저녁은 너희가 사는 거다?',photoReply:'셋이 야식집 간판 앞에 섰다. 사진 아래에 역 이름도 적어 뒀다.',
+    photoEcho:'그 야식집 주소 찾았어. 사진 밑에 역 이름 써 놓길 잘했지?',opening:'야, 내려! 우리 반대 방향 탔어. 어… 문 닫혔다.',
     private:'빈 좌석 둘에 나란히 앉는다.',crowd:'단톡에 구조 요청을 보낸다.',
-    whisper:'다들 알아채기 전에 말할게. 아까 너랑 더 있고 싶어서 한 정거장만 더 가려고 했어.',
+    whisper:'방향 잘못 탄 줄 알고 식겁했는데… 너 옆에 앉으니까 조금 더 가도 되겠다 싶어.',
     witness:'다음 역에서 내려! 내가 그 동네 야식집 앞이야. 이렇게 만난 김에 한 끼 어때?',
-    pair:'다음 역에서 둘이 늦은 저녁을 먹자.',team:'구조대에게 우리가 저녁을 산다.',
-    groupMemory:'막차 구조대 영수증',groupEcho:'야식집 사장님이 우리를 막차 구조대로 기억하셔. 다음엔 제시간에 오라시네.',secret:'그날 우리 내린 역, 노선도에서 보면 아직 웃겨. 이번엔 안 알려 줄게.',
-    keepsake:'반대 방향 막차표',echo:'우리 잘못 내렸던 역이야. 오늘은 일부러 여기 왔어.'
+    pair:'이번 역에서 내릴까? 다음 저녁도 나랑 먹자.',team:'구조대에게 우리가 저녁을 산다.',
+    groupMemory:'막차 구조대 영수증',groupEcho:'야식집 사장님이 우리를 막차 구조대로 기억하셔. 다음엔 제시간에 오라시네.',secret:'막차 방향 잘못 탄 얘기는 아직 우리 둘만 알아. 노선도만 봐도 웃음 나.',
+    keepsake:'반대 방향 막차표',echo:'반대로 탄 날 기억나? 오늘은 그 역 이름 보고 네 생각부터 났어.'
   },
   blackout:{
-    title:'촛불이 꺼진 순간',opening:'잠깐, 정전이야? 생일 케이크가 아직 내 손에 있는데!',
+    title:'촛불이 꺼진 순간',setup:'생일 번개에서 케이크가 나오자마자 방 안이 캄캄해졌다.',
+    pairReply:'그럼 저녁 먹을 날 잡자. 초는 네가, 케이크는 내가 챙길게.',quietReply:'그래. 케이크 맨 위 딸기도 네 몫으로 놔둘게.',
+    teamReply:'다음에 셋이 저녁 먹을 때 이 포즈 또 찍자. 그땐 전등 켜고!',photoReply:'불이 돌아온 뒤 셋이 빈 케이크 접시와 손전등을 한 장에 담았다.',
+    photoEcho:'빈 접시 옆에 손전등까지 나온 사진 봤어? 정전됐던 밤이 딱 생각나.',opening:'잠깐, 정전이야? 생일 케이크가 아직 내 손에 있는데!',
     private:'휴대폰 불빛으로 둘이 케이크를 지킨다.',crowd:'단톡에 플래시 켜고 모이라고 한다.',
-    whisper:'사실 네 생일 때도 만들어 주려고 연습한 거야. 첫 조각 먹어 볼래?',
-    witness:'불 들어왔다! 세상에, 초 대신 폰 세 대 들고 소원 비는 건 처음 본다.',
+    whisper:'사실 다음엔 네가 좋아하는 맛으로 만들어 보고 싶어. 첫 조각 먹어 볼래?',
+    witness:'여기 케이크 보여! 초 대신 우리 폰 세 개 켜고 소원 빌까?',
     pair:'다음 생일엔 내가 초를 꽂아 줄게.',team:'플래시 세 개 켜고 기념사진을 찍는다.',
     groupMemory:'휴대폰 세 대로 찍은 생일사진',groupEcho:'내년 생일에도 폰 세 대 들고 찍자는 사람이 벌써 둘이야. 너까지 셋 할래?',secret:'케이크 첫 조각 잘라 준 건 우리 둘만 알고 있자. 생일엔 초도 챙길게.',
-    keepsake:'촛불 대신 켜진 불빛',echo:'그날 사진 봐. 불은 꺼졌는데 얼굴은 다 환하게 나왔어.'
+    keepsake:'촛불 대신 켜진 불빛',echo:'그날 네가 폰으로 비춰 준 덕에 케이크 안 떨어뜨렸어. 다음엔 첫 조각 네가 골라.'
   }
 };
 function incidentScene(e){
   const s=incidents[e.code];
-  if(!e.route)return {title:s.title,message:s.opening,choices:[
-    snapChoice(s.private,''),snapChoice(s.crowd,'')]};
-  if(e.route==='pair')return {title:s.title,message:s.whisper,choices:[
-    snapChoice(s.pair,'그럼 다음엔 내가 먼저 기다릴게. 둘만의 약속이야.','dinnerPromise'),
-    snapChoice('우리끼리만 알고 웃어넘기자.','좋아. 나중에 눈만 마주쳐도 웃을 것 같아.','memory')]};
-  return {title:s.title,message:s.witness,choices:[
-    snapChoice(s.team,'날짜는 단톡에 올려 둘게. 다음에도 이 멤버로 만나자.','friend'),
-    snapChoice('증거는 한 장만 간직하자.','오늘의 소동을 셋만 아는 추억으로 남겼다.','memory')]};
+  if(!e.route)return {title:s.title,setup:s.setup,message:s.opening,choices:[
+    {label:s.private},{label:s.crowd}]};
+  if(e.route==='pair')return {title:s.title,speaker:e.id,message:s.whisper,choices:[
+    snapChoice(s.pair,s.pairReply,'dinnerPromise'),
+    snapChoice('오늘 얘긴 우리끼리 간직하자.',s.quietReply,'memory')]};
+  return {title:s.title,speaker:e.other,message:s.witness,choices:[
+    snapChoice(s.team,s.teamReply,'friend'),
+    {label:'셋이 기념사진을 찍는다.',line:s.photoReply,effect:'memory'}]};
 }
 function handleIncident(e,index){
   const action=incidentScene(e).choices[index];if(!action)return;
@@ -61,12 +74,12 @@ function handleIncident(e,index){
     else {c.affection++;setPromise(c,'dinnerDate');}
   }
   const participants=group?[e.other]:[];
-  const souvenir=group?s.groupMemory:s.keepsake;
-  const memory=(group?s.crowd:s.private)+' '+action.line;
+  const souvenir=group?(index===0?s.groupMemory:s.title+' · 단체 사진'):s.keepsake;
+  const memory=group && index===1?action.line:kinPerson(group?e.other:e.id).name+'의 대답 “'+action.line+'”';
   (game.keepsakes ||= []).push({id:e.id,title:souvenir,year:game.year,memory,others:participants});
   remember(e.id,s.title,memory,'incident',participants);
-  addEcho(e.id,'incident',group?s.groupEcho:index===0?s.echo:s.secret,souvenir,participants);
-  c.last=memory;e.result={label:action.label,line:action.line,spoken:!(group && index===1)};
+  addEcho(e.id,'incident',group?(index===0?s.groupEcho:s.photoEcho):index===0?s.echo:s.secret,souvenir,participants);
+  c.last=memory;e.result={label:action.label,line:action.line,spoken:!!action.spoken,speaker:group?e.other:e.id};
   navigate();
 }
 function seasonalEncounter(){

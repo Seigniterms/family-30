@@ -65,11 +65,12 @@ function endMarriage(id) {
 function baseScene(e) {
   const id = e.id, contact = game.contacts[id];
   const choice = (label, line, effect='memory') => ({label,line,effect});
-  const stay = choice('지금처럼 지내자.', '우리 속도대로 지내기로 했다.');
+  const reply=(label,line,effect)=>({label,line,effect,spoken:true});
+  const stay = choice('지금처럼 지내자.', '둘이 걷던 길을 따라 집으로 돌아갔다.');
   if (e.type === 'intro') {
     const story = stories.find(s => s.id === e.story);
     return {title:story.title, setup:story.scene, message:story.message, choices:story.choices.map(([label,line,memory],i) =>
-      ({label,line,memory,effect:i === 0 || (story.id === 'dinner' && i === 2) ? 'promise' : 'closer'}))};
+      ({label,line,memory,spoken:true,effect:i === 0 || (story.id === 'dinner' && i === 2) ? 'promise' : 'closer'}))};
   }
   let title, setup, message, choices;
   switch(e.type) {
@@ -82,7 +83,7 @@ function baseScene(e) {
       choices=[choice('기다려 줘서 고마워.', '둘이 나란히 앉아 첫 곡부터 함께 들었다.', 'ticketStub'),choice('앙코르는 같이 따라 부르자.', '마지막 소절에서 두 사람의 목소리가 겹쳤다.', 'ticketStub')];break;
     case 'concert':
       title='두 장의 공연표'; setup='공연장 앞에서 나는 좌석 번호가 찍힌 표를 꺼냈다.';
-      message='몇 번 출구야? 표 사진 보내 줄래?';
+      message='나 공연장 입구야. 네 표에 적힌 입구 번호 좀 보여 줄래?';
       choices=[choice('채팅창을 열어 사진을 보낸다.', '', 'sendTicket'),choice('전화해서 입구에서 만난다.', '입구에서 만나 앙코르까지 함께 들었다.', 'ticketStub')]; break;
     case 'ticketChat':
       title='잠깐, 여긴 단톡인데'; setup='사진 아래 읽음 숫자가 순식간에 줄었다. '+members[e.other].name+'에게서 답장이 왔다.';
@@ -96,29 +97,29 @@ function baseScene(e) {
       title='우산 한쪽'; setup='2번 출구 앞, 내 쪽으로 우산이 기울었다.'; message='어깨 젖잖아. 조금 더 붙을래?';
       choices=[choice('보폭을 맞춰 걷는다.', '집 앞까지 같은 속도로 걸었다.', 'closer'),choice('따뜻한 저녁은 내가 살게.', '젖은 어깨를 털며 다음 저녁을 약속했다.', 'dinnerPromise')]; break;
     case 'friday':
-      title='이번엔 달력에 동그라미'; setup='미뤄 둔 약속을 지키러 내가 먼저 도착했다.'; message='오늘은 표 사진 잘못 보낼 일 없지?';
+      title='이번엔 달력에 동그라미'; setup='미뤄 둔 약속을 지키러 내가 먼저 도착했다.'; message='내가 먼저 오려고 했는데. 벌써 와 있었어?';
       choices=[choice('오늘은 폰을 주머니에 넣을게.', '기다려 준 사람과 저녁을 보냈다.', 'closer')]; break;
     case 'anniversary':
-      title='냉장고에 케이크가 두 개'; setup='우리 기념일, 케이크를 숨기려 문을 열었다. 같은 상자가 먼저 와 있었다.'; message='설마 너도 같은 빵집 갔어?';
+      title='냉장고에 케이크가 두 개'; setup='우리 기념일, 케이크를 숨기려고 냉장고를 열었다. 같은 상자가 먼저 와 있었다.'; message='설마 너도 같은 빵집 갔어?';
       choices=[choice('초를 두 배로 켜자!', '불을 끄고 두 케이크 사이에서 소원을 빌었다.', 'candles'),choice('한 판은 친구들 부르자.', '단톡 멤버들과 케이크를 나눠 먹었다.', 'partyPhoto')]; break;
     case 'sportsLater':
       title='운동회 다음 날'; setup='아이와 같이 운동회 사진을 펼쳐 보기로 한 날이다.'; message='내가 달리는 사진부터 볼래?';
       choices=[choice('옆에 앉아 한 장씩 넘긴다.', '뒤늦게 함께 본 운동회 사진에 아이의 이야기를 적었다.', 'sportsPhoto')]; break;
     case 'sports':
-      title='운동회 초대장'; setup=members[e.kid].name+'의 첫 운동회 날, 나는 보호자 달리기 출발선에 섰다.'; message='출발 총성이 울렸다. 아이가 결승선에서 손을 흔든다.';
+      title='운동회 초대장'; setup=members[e.kid].name+'의 운동회다. 보호자 달리기를 앞두고 아이와 운동장에 섰다.'; message='여기야! 결승선에서 기다릴게!';
       choices=[choice('폼 잡고 전력 질주!', '결승선 직전 모자가 날아갔다. 아이가 웃으며 내게 종이 메달을 걸어 줬다.', 'medal'),choice('손을 흔들며 골인한다.', '아이가 직접 찍은 사진 속에서 나는 활짝 웃고 있었다.', 'sportsPhoto')]; break;
     case 'meet': case 'follow':
       title = e.type === 'follow' ? '기억하고 있었구나' : '빈자리 하나';
-      setup = e.type === 'follow' ? '지난번 기억이 떠올랐다. '+(e.previous || '')+' 오늘은 내가 먼저 연락했다.' : '모임에 조금 일찍 도착했다. 내 옆에 한 사람이 앉았다.';
+      setup = e.type === 'follow' ? '약속한 날, 내가 먼저 도착했다. 곧 맞은편 자리에 '+members[id].name+'도 앉았다.' : '모임에 조금 일찍 도착했다. 내 옆에 한 사람이 앉았다.';
       message = '오늘은 우리 둘이 좀 더 얘기할까?';
-      choices = [choice('다음엔 둘이서 만날래?', '좋아. 다음 만남은 우리 둘만의 약속이다.', 'promise'), choice('친구로 자주 보자!', '편한 친구가 한 명 더 생겼다.', 'friend'), choice('오늘은 먼저 갈게.', '웃으며 다음을 기약했다.')];
+      choices = [reply('다음엔 둘이서 만날래?', '좋아. 다음엔 나한테 먼저 연락해 줘.', 'promise'), choice('친구로 자주 보자!', '편한 친구가 한 명 더 생겼다.', 'friend'), choice('오늘은 먼저 갈게.', '웃으며 다음을 기약했다.')];
       if (!['연인','배우자'].includes(contact.role) && contact?.affection > 0)
-        choices.unshift(choice('나, 너랑 사귀고 싶어.', '나도 같은 마음이야. 오늘부터 우리 첫날이다.', 'date'));
+        choices.unshift(reply('나, 너랑 사귀고 싶어.', '나도 좋아해. 이제 손잡고 걸어도 돼?', 'date'));
       break;
     case 'couple':
       title='우리의 다음 장'; setup='둘이 걷던 길 끝에서 나는 걸음을 늦췄다.'; message='앞으로 우리는 어떻게 지내고 싶어?';
       choices=[choice('다음 데이트도 약속하자.', '달력에 둘만의 날짜를 적었다.', 'promise'),choice('우리 여기까지 하자.', '서로의 마음을 듣고 연애를 마쳤다.', 'split')];
-      if (!spouse() && !townSpouse(id)) choices.unshift(choice('나랑 결혼할래?', '응. 우리 함께 살자. 오늘부터 우리는 가족이다.', 'marry'));
+      if (!spouse() && !townSpouse(id)) choices.unshift(reply('나랑 결혼할래?', '응. 내일 아침에도 눈 뜨면 네가 옆에 있으면 좋겠어.', 'marry'));
       if (contact.role === '배우자') choices[1]=choice('우리 이혼하자.', '긴 대화 끝에 혼인을 마무리했다.', 'split');
       break;
     case 'affair':
@@ -126,9 +127,9 @@ function baseScene(e) {
       choices=[choice('나도 원해.', '서로의 마음을 확인하고 둘만의 밤을 보냈다.', 'affair'),stay]; break;
     case 'schedule': {
       const other=members[e.other].name;
-      title='같은 날 잡힌 두 약속'; setup=other+'와 만나기로 한 날, 또 하나의 약속 알림이 떴다.';
+      title='같은 날 잡힌 두 약속'; setup=other+' 약속과 '+members[id].name+' 약속이 달력 같은 칸에 적혀 있다.';
       message='그날 시간 그대로 괜찮아?';
-      choices=[choice('이 약속을 지키고 다른 약속을 미루자.', other+'에게 먼저 연락해 양해를 구했다.', 'keepFirst'),
+      choices=[choice(members[id].name+' 약속은 지키고 '+other+'에게 연락한다.', other+'에게 먼저 연락해 양해를 구했다.', 'keepFirst'),
         choice(other+'와의 약속을 먼저 지키자.', '겹친 일정을 솔직히 설명하고 다음을 기약했다.', 'keepOther')];
       break;
     }
@@ -137,7 +138,7 @@ function baseScene(e) {
       choices=[choice('솔직히 말하고 얘기를 듣자.', '우리는 오래 이야기했다. 다시 믿으려면 시간이 필요하다.', 'conflict'),choice('우리 관계를 정리하자.', '우리는 각자의 길을 가기로 했다.', 'split')]; break;
     case 'family':
       title='가족에 관한 이야기'; setup='앞으로의 삶에 대해 생각하다가 아이 이야기가 나왔다.';
-      message='우리 가족이 더 커진다면 어떨까?'; choices=[stay];
+      message='우리 집에 아이가 온다면 어떨 것 같아?'; choices=[stay];
       {
         if (members[id].sex !== members[game.player].sex)
           choices.unshift(choice('우리 아이를 맞이하자.', '함께 새 생명을 맞을 준비를 했다.', 'birth'));
@@ -145,13 +146,13 @@ function baseScene(e) {
           choices.unshift(choice('함께 입양을 준비하자.', '함께 부모가 되기로 했다.', 'adopt'));
       } break;
     case 'solo':
-      title='내가 그리는 가족'; setup='입양 설명회를 다녀온 뒤 내 마음을 들여다봤다.'; message='나는 혼자서도 부모가 되고 싶을까?';
-      choices=[choice('단독 입양을 진행한다.', '내가 아이의 보호자가 되었다.', 'solo'),choice('조금 더 생각한다.', '결정을 서두르지 않기로 했다.')]; break;
+      title='내가 그리는 가족'; setup='입양 설명회를 다녀온 뒤 내 마음을 들여다봤다.'; message='혼자 아이를 키운다면 내 하루는 어떻게 달라질까?';
+      choices=[choice('입양 절차를 시작한다.', '아이를 맞을 준비를 시작했다.', 'solo'),choice('조금 더 생각한다.', '결정을 서두르지 않기로 했다.')]; break;
     default:
       title='나를 위한 하루'; setup='모처럼 약속 없는 주말이다.'; message='오늘 하루는 어떻게 보낼까?';
       choices=[choice('동네를 산책한다.', '처음 보는 골목에서 마음에 드는 가게를 발견했다.'),choice('푹 쉬기로 한다.', '오랜만에 나 자신을 돌봤다.')];
   }
-  return {title,setup,message,choices};
+  return {title,setup,message,choices,narrationOnly:['solo','quiet'].includes(e.type)};
 }
 const seasons=['봄','여름','가을','겨울'];
 function nextSeasonLabel(){return ['여름으로','가을로','겨울로','봄으로'][game.season || 0];}
@@ -186,13 +187,14 @@ function scene(e){
   if(e.type==='farewell')return {title:'각자의 길',setup:'우리 둘이 잠시 자리에 남았다.',message:'하고 싶은 얘기가 있다고?',choices:[opt('우리 관계는 여기까지야.','함께한 시간에 인사하고 각자의 길로 돌아섰다.','split'),opt('조금 더 생각할게.','오늘은 함께 걷던 길을 한 번 더 걸었다.','memory')]};
   if(e.type==='chapter'){
     const chapter=library.find(s=>s.code===e.code);
-    return {...chapter,message:e.id===game.player?'나는 어떻게 할까?':members[e.id].name+'의 시선이 내게 머물렀다.',choices:chapter.choices.map(a=>({...a}))};
+    const narrationOnly=chapter.narrationOnly || e.id===game.player;
+    return {...chapter,narrationOnly,setup:narrationOnly?'':chapter.setup,message:narrationOnly?chapter.setup:chapter.message,choices:chapter.choices.map(a=>({...a}))};
   }
   if(e.type==='reconnect'){
-    return {title:'먼저 떠오른 사람',setup:e.previous || '오랜만에 둘만의 연락이 왔다.',
+    return {title:'먼저 떠오른 사람',setup:members[e.id].name+'에게 개인톡이 왔다.',
       message:e.afterProposal?'결혼 얘기는 천천히 하자. 이번엔 그냥 같이 밥 먹을래?':
         e.concert?'우리 그날 앙코르까지 들었잖아. 집에 오는 길에 그 노래가 나오더라. 저녁 같이 할래?':'문득 네 생각이 났어. 이번 주에 얼굴 보고 저녁 먹을래?',
-      choices:[opt('좋아. 지난번 그 자리에서 보자.','둘이 다시 만날 저녁 약속을 잡았다.','dinnerPromise'),
+      choices:[opt('좋아. 저녁은 같이 먹자.','둘이 다시 만날 저녁 약속을 잡았다.','dinnerPromise'),
         opt('오늘은 통화로 안부를 나누자.','오랜만에 목소리를 들으며 서로의 하루를 얘기했다.','closer'),
         opt('이번엔 혼자 쉴게.','오늘은 각자의 시간을 보내기로 했다.','memory')]};
   }
@@ -202,23 +204,27 @@ function scene(e){
         {label:'잠깐 안부 묻고 싶었어.',line:'얼굴 보니까 좋다. 다음에 또 보자!',effect:'memory',spoken:true}].filter(a=>!a.offer || eligible(c,a.offer))};
   }
   if(e.type==='arrival'){
-    return {title:'우리 집에 처음 온 날',setup:e.previous,message:'작은 손이 내 손가락을 감쌌다.',
+    return {title:'우리 집에 처음 온 날',setup:'아이가 처음 집에 온 날이다.',narrationOnly:true,message:'작은 손이 내 손가락을 감쌌다.',
       choices:[opt('오늘 날짜와 이름을 적는다.','가족 앨범의 첫 줄을 썼다.','arrival'),opt('첫날의 이야기를 녹음한다.','첫날의 목소리를 간직했다.','arrival')]};
   }
   if(e.type==='familyNews'){
-    return {title:'소식을 전하는 날',setup:e.previous,message:'이 순간을 어떻게 남길까?',choices:[opt('가까운 사람들에게 전한다.','우리 소식에 축하 인사가 하나씩 도착했다.','memory'),opt('오늘 날짜를 앨범에 적는다.','서툰 글씨로 가족의 새 페이지를 채웠다.','memory')]};
+    return {title:'소식을 전하는 날',setup:'',message:'둘이 결혼하기로 했다. 이제 이 소식을 누구에게 먼저 전할까?',narrationOnly:true,choices:[opt('가까운 사람들에게 전한다.','우리 소식에 축하 인사가 하나씩 도착했다.','memory'),opt('오늘 날짜를 앨범에 적는다.','서툰 글씨로 가족의 새 페이지를 채웠다.','memory')]};
   }
   if(e.type==='proposal'){
     const [message,label,line]=offers[e.kind];
     let invitation=(c.voice || '')+message;
     if(e.kind==='date')invitation=confessionLines[members[e.id].name] || invitation;
     if(e.returnCall)invitation='기다렸지? 내 일정 정리됐어. 이번엔 같이 걸을래?';
-    return {title:'먼저 도착한 마음',setup:c.last || '내 이름을 부르는 메시지가 왔다.',message:invitation,
-      choices:[opt(e.kind==='date'?'나도 좋아. 우리 만나자.':label,line,e.kind==='outing'?'promise':e.kind),opt('조금 더 만나 보고 싶어.','서두르지 않고 다시 만나기로 했다.','later'),opt('솔직히 말할게. 나는 원하지 않아.','상대는 내 대답을 받아들였다.','no')]};
+    return {title:'먼저 도착한 마음',setup:members[e.id].name+'에게 개인톡이 왔다.',message:invitation,
+      choices:[opt(e.kind==='date'?'나도 좋아. 우리 사귀자.':label,line,e.kind==='outing'?'promise':e.kind),opt(e.kind==='outing'?'오늘은 어렵고, 다음에 걷고 싶어.':'조금 더 만나 보고 싶어.','서두르지 않고 다시 만나기로 했다.','later'),opt('솔직히 말할게. 나는 원하지 않아.','상대는 내 대답을 받아들였다.','no')]};
   }
   if(e.type==='warning' || e.type==='departure'){
     const leave=e.type==='departure';
-    return {title:leave?'마지막으로 온 연락':'읽지 못한 마음',setup:c.last,message:leave?'기다리는 일이 너무 많았어. 우리 여기까지 하자.':c.changes?'다시 잡은 날에도 못 봤잖아. 무슨 일 있었어?':'지난번에 기다렸는데 연락도 없더라. 무슨 일 있었어?',
+    let message='요즘 우리 사이가 조금 어색해. 잠깐 얘기할 수 있어?';
+    if(c.warningReason==='clash')message='지난번 둘이 있는 모습이 자꾸 생각나. 내 얘기도 들어 줄래?';
+    if(c.warningReason==='missed')message=c.changes?'다시 잡은 날에도 못 봤잖아. 무슨 일 있었어?':'약속 장소에서 기다렸어. 그날 무슨 일 있었어?';
+    if(leave)message='많이 생각했어. 우리 이제 여기까지 하자.';
+    return {title:leave?'마지막으로 온 연락':'읽지 못한 마음',setup:members[e.id].name+'에게 개인톡이 왔다.',message,
       choices:leave?[opt('네 마음을 존중할게.','상대가 작별을 고했다.','split')]:
         [opt('미안해. 다음 약속은 내가 먼저 잡을게.','다시 만날 날을 함께 정했다.','repair'),opt('오늘은 이 얘기 그만하자.','풀지 못한 이야기가 남았다.','dismiss')]};
   }
@@ -273,7 +279,7 @@ function missed(c){
   c.last=changed?'시간을 바꾼 건 알았는데, 다시 잡은 약속에도 안 왔네. 오늘은 먼저 갈게.':'기다렸는데 안 와서 나 먼저 갈게.';
   c.promise=false; delete c.deadline; delete c.waitAt;
   c.note={until:tick()+1,text:c.last};
-  c.trust=(c.trust || 0)-1;
+  c.trust=(c.trust || 0)-1;c.warningReason='missed';
   if(c.warning==='heard' || (partner(c) && c.unansweredWarning)) c.warning='final';
   else if(!c.warning) c.warning='new';
 }
@@ -443,7 +449,7 @@ function answer(index) {
   if(e.type==='incident'){handleIncident(e,index);return;}
   const {title,choices}=scene(e), c=game.contacts[e.id], action=choices[index];
   if (!action) return;
-  if(snapshotEvents.includes(e.type))snapshotAnswer(e,index);
+  if(snapshotEvents.includes(e.type) && snapshotAnswer(e,index))return;
   if(e.type==='approach' && !e.step){
     if(index===0){e.step=1;navigate();return;}
     if(index===1){
@@ -459,7 +465,8 @@ function answer(index) {
     const outcome=decide(c,action.offer);
     recordResponse(c,e,action.offer,outcome);
     if(outcome!=='yes'){
-      action.line=outcome==='later'?'마음은 고마워. 한 번 더 만나 보고 대답해도 될까?':
+      action.spoken=true;
+      action.line=action.offer==='outing'?(outcome==='later'?'오늘은 시간이 안 돼. 다음에 다시 물어봐 줄래?':'지금은 혼자 있고 싶어. 먼저 가 볼게.'):outcome==='later'?'마음은 고마워. 한 번 더 만나 보고 대답해도 될까?':
         c.trust<0?'지난번 약속 이후로 아직 마음이 편하지 않아.':'나는 아직 그런 마음이 아니야. 솔직히 말하고 싶었어.';
       action.effect=outcome;
     }
@@ -513,7 +520,7 @@ function answer(index) {
       const possible=Object.keys(game.contacts).filter(id=>id!==e.id && partner(game.contacts[id]));
       if(possible.length && pick([true,false])) (game.sightings ||= []).push({observer:pick(possible),other:e.id});
     } c.affair=true; c.affection++; break;
-    case 'conflict': c.warning=c.warning==='heard'?'final':'new'; c.affection=Math.max(0,c.affection-1); break;
+    case 'conflict': c.warningReason='clash';c.warning=c.warning==='heard'?'final':'new'; c.affection=Math.max(0,c.affection-1); break;
     case 'birth': case 'adopt': case 'solo': {
       const kid=nextChildId(e.id);
       (game.obligations ||= []).push({type:'arrival',id:e.id,kid,previous:memory,kind:action.effect==='birth'?'출생':'입양',parents:action.effect==='solo'?[game.player]:[game.player,e.id]});
@@ -545,10 +552,11 @@ function answer(index) {
      (e.type==='reconnect' || e.type==='couple' || e.type==='anniversary') &&
      !['no','later','memory'].includes(action.effect) && (action.effect!=='dinnerPromise')) c.needsMeeting=false;
   if(e.planChoice && game.diary.some(p=>p.kind===e.planChoice.kind && p.state==='proposal' && p.people.includes(e.id)) && ['promise','dinnerPromise','bookConcert','repair'].includes(action.effect)){
-    memory=action.line='먼저 잡은 약속이 있어. 내 일정에서 만날 날을 다시 고르자.';
+    action.spoken=false;
+    memory=action.line='그날은 먼저 잡은 약속이 있다. 달력을 펴고 둘 다 비는 날을 찾아본다.';
   }
   if(c) c.last=memory;
-  const spoken = !!action.spoken || e.type==='intro' || (action.offer && ['later','no'].includes(action.effect));
+  const spoken=action.spoken===true;
   e.result={label:action.label,line:action.line,memory,spoken};
   game.log.push({year:game.year,season:game.season || 0,code:e.code,id:e.id,title,memory,effect:action.effect, label:action.label});
   if(snapshotEvents.includes(e.type)){

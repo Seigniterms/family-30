@@ -59,3 +59,42 @@ test('first hosting chooses a goal once, while older saves keep their chosen goa
   assert.equal(restored('buttons.length'),2);
   assert.equal(restored('game.club.goal'),'골목 야식회');
 });
+
+
+test('oden choices keep their guests, keepsake and specific reply after saving',()=>{
+  for(const role of [0,1])for(const choice of [0,1]){
+    const storage=new Map(),run=load(storage);
+    run("startRun('1');meet('2');meet('3');game.season=1;game.event={type:'outingDay',activity:'oden',id:'2',guests:['2','3']}");
+    assert.equal(run('lifeScene(game.event).title'),'오뎅벙');
+    run(`answerLife(game.event,${role});persist()`);
+    const resumed=load(storage);
+    assert.equal(resumed('game.event.role'),role);
+    resumed(`answerLife(game.event,${choice});persist()`);
+    assert.equal(resumed("game.club.tracks['요리']"),1);
+    assert.equal(resumed('game.club.guests[2]'),1);
+    assert.equal(resumed('game.club.guests[3]'),1);
+    assert.match(resumed('game.keepsakes.at(-1).title'),choice===0?/오뎅벙 사진/:/어묵탕 레시피/);
+    const restored=load(storage);
+    restored("game.season=2;game.event=game.echoes.find(e=>e.kind==='oden')");
+    assert.equal(restored('game.event.path'),choice);
+    assert.equal(restored('game.event.guests.join()'),'2,3');
+    assert.match(restored('lifeScene(game.event).choices[0].label'),choice===0?/한 사람당 한 꼬치/:/무부터 푹/);
+    restored('answerLife(game.event,0)');
+    assert.equal(restored('game.log.at(-1).effect'),'echo');
+    assert.match(restored('game.log.at(-1).memory'),choice===0?/어묵을 주문/:/레시피에 덧붙였다/);
+  }
+});
+
+test('oden joins the rotating weekend choices without invalidating a saved weekend',()=>{
+  const run=load();run("startRun('1')");
+  const activities=new Set();
+  for(let season=0;season<20;season++){
+    run(`game.year=1+Math.floor(${season}/4);game.season=${season}%4;weekend()`);
+    for(const activity of run('game.weekend.plans'))activities.add(activity);
+    assert.equal(run('new Set(game.weekend.plans).size'),2);
+    const saved=run('JSON.stringify(game.weekend)');
+    run('weekend()');
+    assert.equal(run('JSON.stringify(game.weekend)'),saved);
+  }
+  assert.ok(activities.has('oden'));
+});

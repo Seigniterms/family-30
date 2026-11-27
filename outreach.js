@@ -3,6 +3,7 @@ const outreachIdeas={
   shoot:{invite:'사진 한 장 더 찍자',place:'사진 부스',item:'사진',voice:'사진 나오는 동안 여기 좀 더 있을까?'},
   game:{invite:'한 판 더 하자',place:'오락실',item:'게임',voice:'내가 동전 두 개 남겨 놨어. 마지막 판은 네가 골라.'},
   dinner:{invite:'국수 먹으러 가자',place:'국숫집',item:'국수',voice:'여기 양념장 따로 주더라. 네 그릇에 얼마나 넣을래?'},
+  oden:{invite:'오뎅벙 한 번 더 하자',place:'어묵집',item:'어묵',voice:'오늘은 꼬치 넉넉하게 시켰어. 국물부터 한 모금 마실래?'},
   trip:{invite:'강변 걸으러 가자',place:'강변 산책로',item:'산책',voice:'여기쯤 오면 강이 보여. 잠깐 같이 서 있을래?'}
 };
 function outreachMemory(id){
